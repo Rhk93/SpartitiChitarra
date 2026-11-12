@@ -60,13 +60,14 @@ body.noScore #panel{display:none}
 body.noScore .hplay{display:none}
 header .hp-main{background:rgba(255,255,255,.9)!important;color:var(--main)!important;min-width:2.4rem;font-weight:800}
 #hBpm{min-width:3.6rem;cursor:default}
+#hSound{max-width:9.5rem}
 body.onlyNeck.noScore header{display:flex!important}
 body.noScore #wrap{flex:1 1 auto}
 #fretTools{display:inline-flex;gap:.25rem;margin-left:auto}
 #fretTools button{background:var(--soft);font-size:.8rem;padding:.35rem .55rem}
 #fretTools button.on{background:var(--acc2);color:#fff}
 #msg{font-size:.8rem;color:#8a6d4b;margin-top:.15rem;min-height:1rem}
-#toast{position:fixed;left:50%;top:4.4rem;transform:translateX(-50%);background:#222;color:#fff;padding:.5rem .9rem;border-radius:.6rem;font-size:.875rem;display:none;z-index:30;max-width:90vw;text-align:center}
+#toast{position:fixed;left:50%;top:38%;transform:translateX(-50%);background:#222;color:#fff;padding:.5rem .9rem;border-radius:.6rem;font-size:.875rem;display:none;z-index:30;max-width:90vw;text-align:center}
 .pos{cursor:pointer}
 #ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #playBar{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;margin-top:.5rem;padding:.4rem;border-radius:.8rem;background:var(--soft)}
@@ -119,9 +120,9 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
   <span id="pageInfo" style="display:none;font-size:.8rem;opacity:.9"></span>
   <span class="grp" title="Dimensione dello spartito"><button id="zout">🔍−</button><button id="zval" title="Tocca per adattare alla larghezza">100%</button><button id="zin">🔍+</button></span>
   <span class="grp hplay"><button id="hPlay" title="Play / Pausa" class="hp-main">▶</button><button id="hStop" title="Stop">⏹</button>
-    <button id="hBpmMinus" title="Più lento">−</button><button id="hBpm" title="Velocità (battiti al minuto)">♩80</button><button id="hBpmPlus" title="Più veloce">+</button></span>
+    <button id="hBpmMinus" title="Più lento">−</button><button id="hBpm" title="Velocità (battiti al minuto)">♩80</button><button id="hBpmPlus" title="Più veloce">+</button><select id="hSound" title="Strumento"></select></span>
   <select id="key" title="Armatura di chiave"></select>
-  <button id="setBtn" title="Aspetto">⚙️</button>
+  <button id="setBtn" title="Impostazioni: colori, strumento, nomi delle note">⚙️</button>
 </header>
 
 <div id="wrap">
@@ -189,7 +190,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
 <!-- finestra: aspetto -->
 <div class="modal" id="setModal"><div class="sheet">
   <button class="close" id="setClose">✕</button>
-  <h3>Aspetto</h3>
+  <h3>⚙️ Impostazioni</h3>
   <h4>Tema colori</h4>
   <div class="chips" id="themes"></div>
   <h4>Colori personalizzati</h4>
@@ -198,8 +199,11 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
   <div class="pick"><input type="color" id="cBg"> Colore di sfondo</div>
   <h4>Stile</h4>
   <div class="chips"><button class="chip" data-style="flat">Normale (tinta unita)</button><button class="chip" data-style="grad">Sfumato</button></div>
-  <h4>Nomi delle note sotto il pentagramma</h4>
-  <div class="chips"><button class="chip" data-names="it">Do Re Mi</button><button class="chip" data-names="en">C D E</button></div>
+  <h4>🎸 Strumento (suono della riproduzione)</h4>
+  <div class="chips" id="soundChips"></div>
+  <h4>🔤 Nomi delle note sotto il pentagramma</h4>
+  <div class="chips"><button class="chip" id="namesOn">Mostra i nomi</button><button class="chip" id="namesOff">Nascondi i nomi</button></div>
+  <div class="chips" style="margin-top:.4rem"><button class="chip" data-names="it">Do Re Mi</button><button class="chip" data-names="en">C D E</button></div>
   <h4>Carattere</h4>
   <select id="fontSel" style="background:var(--soft);width:100%;padding:.6rem"></select>
   <h4>Dimensione del testo: <span id="fsVal"></span></h4>
@@ -1115,20 +1119,24 @@ function noteLabel(n){
   return S.nameStyle==='en'?EN[p.letter]+(p.acc>0?'#':p.acc<0?'b':''):IT[p.letter]+accSym(p.acc);
 }
 function namesSvg(){
+  // una riga dritta sotto ogni pentagramma, con ogni nome in colonna con la sua nota
   let h='';
-  const col=S.main;
+  const col=S.main, fam=(FONTS[S.font]?FONTS[S.font].v:'sans-serif').replace(/"/g,"'");
+  const off={};
+  seq.forEach(g=>{ if(g[0].rest) return; const ci=g[0].chain;
+    for(const n of g){ const d=noteY(n)-n.st.bottom+1.7*n.st.sp; off[ci]=Math.max(off[ci]||0,d,2.7*n.st.sp); } });
   seq.forEach(g=>{
     if(g[0].rest) return;
-    const st=g[0].st, sp=st.sp, ns=g.slice().sort((a,b)=>b.step-a.step);
-    const low=Math.max(...ns.map(noteY)), base=Math.max(st.bottom+2.5*sp,low+1.9*sp), x=ns.reduce((a,n)=>a+n.x,0)/ns.length;
+    const ci=g[0].chain, c=chains[ci], ns=g.slice().sort((a,b)=>b.step-a.step);
+    const x=ns.reduce((a,n)=>a+n.x,0)/ns.length, st=c?staffAt(c,x):ns[0].st, sp=st.sp, fs=sp*1.25;
+    const y0=st.bottom+(off[ci]||2.7*sp);
     ns.forEach((n,k)=>{
-      const fs=sp*1.05;
-      h+='<text x="'+x+'" y="'+(base+k*fs*1.1)+'" font-size="'+fs+'" font-weight="800" text-anchor="middle" fill="'+col+'" stroke="#fff" stroke-width="'+(sp*0.28)+'" paint-order="stroke" font-family="'+(FONTS[S.font]?FONTS[S.font].v:'sans-serif').replace(/"/g,"'")+'">'+noteLabel(n)+'</text>';
+      h+='<text x="'+x+'" y="'+(y0+k*fs*1.1)+'" font-size="'+fs+'" font-weight="800" text-anchor="middle" fill="'+col+'" stroke="#fff" stroke-width="'+(sp*0.28)+'" paint-order="stroke" font-family="'+fam+'">'+noteLabel(n)+'</text>';
     });
   });
   return h;
 }
-function setNames(v){S.showNames=v;save();['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',v));if(v&&loaded&&!scanned)scanScore();drawOverlay();}
+function setNames(v){S.showNames=v;save();['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',v));$('namesOn').classList.toggle('on',v);$('namesOff').classList.toggle('on',!v);if(v&&loaded&&!scanned)scanScore();drawOverlay();}
 
 /* ---------- tempo (4/4, 3/4…) e battute ---------- */
 let detMeter=null;
@@ -1668,9 +1676,21 @@ function demo(){
   if(S.ask) openZone();
 }
 $('demoBtn2').onclick=demo;
-SOUNDS.forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.n;$('soundSel').appendChild(o);});
-$('soundSel').onchange=e=>{S.sound=e.target.value;save();if(cur&&!playing)pluck(pitch(cur.step,cur.ov).sound);else if(!playing)pluck(57);};
-applyPanelH(); applyLook(); refreshZoneUI(); setBpm(S.bpm); document.body.classList.toggle('onlyNeck',!!S.onlyNeck); layout(); $('rhythm').value=S.rhythm; $('soundSel').value=S.sound; $('meterSel').value=S.meter||'auto'; $('namesBtn').onclick=()=>setNames(!S.showNames); $('mNames').onclick=()=>setNames(!S.showNames); ['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',!!S.showNames)); $('loopBtn').classList.toggle('on',S.loop); $('ovBtn').classList.toggle('on',S.showOv);
+SOUNDS.forEach(x=>{
+  for(const id of ['soundSel','hSound']){const o=document.createElement('option');o.value=x.id;o.textContent=x.n;$(id).appendChild(o);}
+  const b=document.createElement('button');b.className='chip';b.dataset.sound=x.id;b.textContent=x.n;b.onclick=()=>setSound(x.id);$('soundChips').appendChild(b);
+});
+function setSound(id){
+  S.sound=id;save();
+  $('soundSel').value=id;$('hSound').value=id;
+  document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===id));
+  if(!playing){ if(cur) pluck(pitch(cur.step,cur.ov).sound); else pluck(57); }
+}
+$('soundSel').onchange=e=>setSound(e.target.value);
+$('hSound').onchange=e=>setSound(e.target.value);
+$('namesOn').onclick=()=>setNames(true);
+$('namesOff').onclick=()=>setNames(false);
+applyPanelH(); applyLook(); refreshZoneUI(); setBpm(S.bpm); document.body.classList.toggle('onlyNeck',!!S.onlyNeck); layout(); $('rhythm').value=S.rhythm; $('soundSel').value=S.sound; $('hSound').value=S.sound; document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===S.sound)); $('meterSel').value=S.meter||'auto'; $('namesBtn').onclick=()=>setNames(!S.showNames); $('mNames').onclick=()=>setNames(!S.showNames); ['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',!!S.showNames)); $('namesOn').classList.toggle('on',!!S.showNames); $('namesOff').classList.toggle('on',!S.showNames); $('loopBtn').classList.toggle('on',S.loop); $('ovBtn').classList.toggle('on',S.showOv);
 </script>
 </body>
 </html>
