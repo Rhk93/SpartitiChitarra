@@ -42,8 +42,11 @@ button:active{transform:scale(.96)}
 #ctrl button.on{background:var(--acc2);color:#fff}
 #zoneBar{display:flex;align-items:center;gap:.4rem;margin-top:.45rem;font-size:.85rem;flex-wrap:wrap}
 #zoneBar select{background:var(--soft)}
-#fretWrap{overflow-x:auto;margin:0 0 .35rem;-webkit-overflow-scrolling:touch}
-#fret{width:680px;height:auto;display:block;margin:0 auto;touch-action:manipulation}
+#fretRow{display:flex;align-items:center;justify-content:center;gap:.4rem;margin:0 0 .35rem}
+#fretSide{display:flex;flex-direction:column;gap:.35rem;flex:0 0 auto}
+#fretSide button{background:var(--soft);color:var(--main);font-size:1.15rem;font-weight:800;width:2.4rem;height:2.4rem;padding:0;border-radius:.6rem;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+#fretWrap{flex:0 1 auto;min-width:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#fret{width:680px;height:auto;display:block;margin:0;touch-action:manipulation}
 #grip{height:16px;margin:-8px -10px 2px;cursor:ns-resize;display:flex;justify-content:center;align-items:center;touch-action:none;user-select:none}
 #grip::before{content:'';width:56px;height:6px;border-radius:3px;background:var(--line)}
 #grip:hover::before{background:var(--acc)}
@@ -133,7 +136,10 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
 
 <div id="panel">
   <div id="grip" title="Trascina per ridimensionare (doppio clic: misura iniziale)"></div>
-  <div id="fretWrap"><svg id="fret" viewBox="0 0 1000 236" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <div id="fretRow">
+    <div id="fretSide"><button id="fretPlus" title="Tastiera più grande">＋</button><button id="fretMinus" title="Tastiera più piccola">−</button></div>
+    <div id="fretWrap"><svg id="fret" viewBox="0 0 1000 236" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  </div>
   <div id="miniBar"><button id="mzout" title="Spartito più piccolo">🔍−</button><button id="mzin" title="Spartito più grande">🔍+</button><button id="miniPlay" title="Play / Pausa">▶</button><button id="showAll" title="Mostra pulsanti e scritte">☰ Mostra tutto</button></div>
   <div id="row">
     <div id="noteName">—</div>
@@ -163,7 +169,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
     <button id="ovBtn" title="Mostra le note riconosciute">👁</button>
   </div>
   <div id="zoneBar">🎯 Porzione del manico: <button id="zoneBtn" class="chip on" style="padding:.35rem .6rem"></button>
-    <span id="fretTools"><button id="fretMinus" title="Tastiera più piccola">− tastiera</button><button id="fretPlus" title="Tastiera più grande">+ tastiera</button><button id="fretFit" title="Adatta la tastiera allo spazio">Adatta</button><button id="neckOnly" title="Nascondi tutte le scritte e lascia solo il manico">🎸 Solo manico</button></span></div>
+    <span id="fretTools"><button id="fretFit" title="Adatta la tastiera allo spazio">Adatta</button><button id="neckOnly" title="Nascondi tutte le scritte e lascia solo il manico">🎸 Solo manico</button></span></div>
   <div id="msg"></div>
 </div>
 
@@ -1304,7 +1310,7 @@ function pluck(midi,vol=0.45){
 /* ---------- dimensioni della tastiera e del pannello ---------- */
 if(S.fretFit==null) S.fretFit=window.innerWidth>900;
 function fretLayout(){
-  const fw=$('fretWrap'), svg=$('fret'), cw=fw.clientWidth||360;
+  const fw=$('fretWrap'), svg=$('fret'), cw=Math.max(200,($('fretRow').clientWidth||360)-$('fretSide').offsetWidth-8);
   let w;
   if(S.fretFit){
     const ph=S.panelH?S.panelH*window.innerHeight:window.innerHeight*(S.onlyNeck?0.45:0.52);
@@ -1328,7 +1334,7 @@ function applyPanelH(){
   const base=S.panelH?S.panelH*vh:vh*(S.onlyNeck?0.45:0.52);
   p.style.height='';
   p.style.minHeight=S.panelH?Math.round(Math.min(base,avail-60))+'px':'';
-  const fretNeed=$('grip').offsetHeight+$('fretWrap').offsetHeight+($('miniBar').offsetParent?$('miniBar').offsetHeight:0)+28;
+  const fretNeed=$('grip').offsetHeight+$('fretRow').offsetHeight+($('miniBar').offsetParent?$('miniBar').offsetHeight:0)+28;
   const scoreH=loaded?$('box').offsetHeight+16:0;
   if(scoreH+p.scrollHeight<=avail) p.style.maxHeight='none';
   else p.style.maxHeight=Math.round(Math.min(avail-60,Math.max(base,fretNeed)))+'px';
