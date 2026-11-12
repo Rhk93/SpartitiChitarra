@@ -142,7 +142,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
     <div id="fretSide"><button id="fretPlus" title="Tastiera più grande">＋</button><button id="fretMinus" title="Tastiera più piccola">−</button></div>
     <div id="fretWrap"><svg id="fret" viewBox="0 0 1000 236" xmlns="http://www.w3.org/2000/svg"></svg></div>
   </div>
-  <div id="miniBar"><button id="mNames" title="Nomi delle note sotto il pentagramma">🔤</button><button id="mzout" title="Spartito più piccolo">🔍−</button><button id="mzin" title="Spartito più grande">🔍+</button><button id="miniPlay" title="Play / Pausa">▶</button><button id="showAll" title="Mostra pulsanti e scritte">☰ Mostra tutto</button></div>
+  <div id="miniBar"><button id="mPdf" title="Esporta PDF con i nomi">📄</button><button id="mNames" title="Nomi delle note sotto il pentagramma">🔤</button><button id="mzout" title="Spartito più piccolo">🔍−</button><button id="mzin" title="Spartito più grande">🔍+</button><button id="miniPlay" title="Play / Pausa">▶</button><button id="showAll" title="Mostra pulsanti e scritte">☰ Mostra tutto</button></div>
   <div id="row">
     <div id="noteName">—</div>
     <div id="noteInfo">Tocca una nota sullo spartito</div>
@@ -173,7 +173,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
     <button id="ovBtn" title="Mostra le note riconosciute">👁</button>
   </div>
   <div id="zoneBar">🎯 Porzione del manico: <button id="zoneBtn" class="chip on" style="padding:.35rem .6rem"></button>
-    <span id="fretTools"><button id="namesBtn" title="Scrivi il nome di ogni nota sotto il pentagramma">🔤 Nomi note</button><button id="fretFit" title="Adatta la tastiera allo spazio">Adatta</button><button id="neckOnly" title="Nascondi tutte le scritte e lascia solo il manico">🎸 Solo manico</button></span></div>
+    <span id="fretTools"><button id="pdfBtn" title="Esporta lo spartito in PDF con i nomi delle note">📄 Esporta PDF</button><button id="namesBtn" title="Scrivi il nome di ogni nota sotto il pentagramma">🔤 Nomi note</button><button id="fretFit" title="Adatta la tastiera allo spazio">Adatta</button><button id="neckOnly" title="Nascondi tutte le scritte e lascia solo il manico">🎸 Solo manico</button></span></div>
   <div id="msg"></div>
 </div>
 
@@ -204,6 +204,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
   <h4>🔤 Nomi delle note sotto il pentagramma</h4>
   <div class="chips"><button class="chip" id="namesOn">Mostra i nomi</button><button class="chip" id="namesOff">Nascondi i nomi</button></div>
   <div class="chips" style="margin-top:.4rem"><button class="chip" data-names="it">Do Re Mi</button><button class="chip" data-names="en">C D E</button></div>
+  <div class="chips" style="margin-top:.4rem"><button class="chip" id="pdfBtn2">📄 Esporta lo spartito in PDF con i nomi</button></div>
   <h4>Carattere</h4>
   <select id="fontSel" style="background:var(--soft);width:100%;padding:.6rem"></select>
   <h4>Dimensione del testo: <span id="fsVal"></span></h4>
@@ -222,7 +223,7 @@ const IT=['Do','Re','Mi','Fa','Sol','La','Si'], EN=['C','D','E','F','G','A','B']
 const OPEN=[64,59,55,50,45,40];            // corde 1..6 (suono reale)
 const OPEN_NAME=['Mi','Si','Sol','Re','La','Mi'];
 const NFRETS=12;
-let W=0,H=0,dark=null,zoom=1,keySig=0,cur=null,loaded=false,pages=[],sources=[];
+let W=0,H=0,dark=null,zoom=1,keySig=0,cur=null,loaded=false,pages=[],sources=[],srcName='';
 
 /* ---------- impostazioni (salvate sul telefono) ---------- */
 const THEMES=[
@@ -399,11 +400,12 @@ async function renderAll(){
   afterLoad();
 }
 async function openFiles(files,append){
-  if(!files||!files.length) return;
+  files=files?[...files]:[];   // copia: la lista del selettore si svuota subito dopo
+  if(!files.length) return;
   try{
     toast('Apro lo spartito…',15000);
     const add=await loadSources(files);
-    if(!append){ sources.forEach(p=>p.url&&URL.revokeObjectURL(p.url)); sources=[]; }
+    if(!append){ sources.forEach(p=>p.url&&URL.revokeObjectURL(p.url)); sources=[]; srcName=String(files[0].name||'spartito').replace(/\.[^.]+$/,'').replace(/[^\w\-]+/g,'_'); }
     sources=sources.concat(add);
     await renderAll();
     if(S.ask&&!append) openZone();
@@ -1118,11 +1120,9 @@ function noteLabel(n){
   const p=pitch(n.step,n.ov);
   return S.nameStyle==='en'?EN[p.letter]+(p.acc>0?'#':p.acc<0?'b':''):IT[p.letter]+accSym(p.acc);
 }
-function namesSvg(){
+function nameItems(){
   // una riga dritta sotto ogni pentagramma, con ogni nome in colonna con la sua nota
-  let h='';
-  const col=S.main, fam=(FONTS[S.font]?FONTS[S.font].v:'sans-serif').replace(/"/g,"'");
-  const off={};
+  const out=[], off={};
   seq.forEach(g=>{ if(g[0].rest) return; const ci=g[0].chain;
     for(const n of g){ const d=noteY(n)-n.st.bottom+1.7*n.st.sp; off[ci]=Math.max(off[ci]||0,d,2.7*n.st.sp); } });
   seq.forEach(g=>{
@@ -1130,11 +1130,77 @@ function namesSvg(){
     const ci=g[0].chain, c=chains[ci], ns=g.slice().sort((a,b)=>b.step-a.step);
     const x=ns.reduce((a,n)=>a+n.x,0)/ns.length, st=c?staffAt(c,x):ns[0].st, sp=st.sp, fs=sp*1.25;
     const y0=st.bottom+(off[ci]||2.7*sp);
-    ns.forEach((n,k)=>{
-      h+='<text x="'+x+'" y="'+(y0+k*fs*1.1)+'" font-size="'+fs+'" font-weight="800" text-anchor="middle" fill="'+col+'" stroke="#fff" stroke-width="'+(sp*0.28)+'" paint-order="stroke" font-family="'+fam+'">'+noteLabel(n)+'</text>';
-    });
+    ns.forEach((n,k)=>out.push({x,y:y0+k*fs*1.1,fs,sp,t:noteLabel(n)}));
   });
-  return h;
+  return out;
+}
+function namesSvg(){
+  const col=S.main, fam=(FONTS[S.font]?FONTS[S.font].v:'sans-serif').replace(/"/g,"'");
+  return nameItems().map(it=>'<text x="'+it.x+'" y="'+it.y+'" font-size="'+it.fs+'" font-weight="800" text-anchor="middle" fill="'+col+'" stroke="#fff" stroke-width="'+(it.sp*0.28)+'" paint-order="stroke" font-family="'+fam+'">'+it.t+'</text>').join('');
+}
+
+/* ---------- esporta il PDF con i nomi delle note ---------- */
+// PDF scritto a mano: ogni pagina è un'immagine JPEG (funziona ovunque, anche senza internet)
+function buildPdf(pagesJpg){
+  const enc=new TextEncoder(), parts=[], offs=[]; let len=0;
+  const push=x=>{const b=typeof x==='string'?enc.encode(x):x; parts.push(b); len+=b.length;};
+  const obj=(id,fn)=>{offs[id]=len; push(id+' 0 obj\n'); fn(); push('\nendobj\n');};
+  push('%PDF-1.4\n%âãÏÓ\n');
+  const n=pagesJpg.length, kids=pagesJpg.map((_,i)=>(3+i*3)+' 0 R').join(' ');
+  obj(1,()=>push('<< /Type /Catalog /Pages 2 0 R >>'));
+  obj(2,()=>push('<< /Type /Pages /Kids ['+kids+'] /Count '+n+' >>'));
+  pagesJpg.forEach((p,i)=>{
+    const pid=3+i*3, cid=4+i*3, iid=5+i*3, W2=595.28, H2=+(595.28*p.h/p.w).toFixed(2);
+    obj(pid,()=>push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W2+' '+H2+'] /Resources << /XObject << /Im0 '+iid+' 0 R >> >> /Contents '+cid+' 0 R >>'));
+    const cs='q '+W2+' 0 0 '+H2+' 0 0 cm /Im0 Do Q';
+    obj(cid,()=>push('<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream'));
+    obj(iid,()=>{push('<< /Type /XObject /Subtype /Image /Width '+p.w+' /Height '+p.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+p.jpg.length+' >>\nstream\n');push(p.jpg);push('\nendstream');});
+  });
+  const xref=len, N=3+n*3;
+  let x='xref\n0 '+N+'\n0000000000 65535 f \n';
+  for(let i=1;i<N;i++) x+=String(offs[i]).padStart(10,'0')+' 00000 n \n';
+  push(x+'trailer\n<< /Size '+N+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n');
+  return new Blob(parts,{type:'application/pdf'});
+}
+async function exportPdf(){
+  if(!loaded){toast('Prima apri uno spartito');return;}
+  if(!scanned) scanScore();
+  toast('Preparo il PDF con i nomi delle note…',15000);
+  await new Promise(r=>setTimeout(r,50));
+  try{
+    const items=nameItems(), fam=FONTS[S.font]?FONTS[S.font].v:'sans-serif';
+    const ranges=pages.length?pages:[{y0:0,y1:H}], out=[];
+    for(const pg of ranges){
+      const h=pg.y1-pg.y0, c=document.createElement('canvas'); c.width=W; c.height=h;
+      const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,W,h);
+      g.drawImage(cv,0,pg.y0,W,h,0,0,W,h);
+      g.textAlign='center'; g.textBaseline='alphabetic'; g.lineJoin='round';
+      for(const it of items){
+        if(it.y<pg.y0||it.y-it.fs>pg.y1) continue;
+        g.font='800 '+it.fs+'px '+fam;
+        g.lineWidth=it.sp*0.28; g.strokeStyle='#fff'; g.strokeText(it.t,it.x,it.y-pg.y0);
+        g.fillStyle=S.main; g.fillText(it.t,it.x,it.y-pg.y0);
+      }
+      const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));
+      out.push({w:W,h,jpg:new Uint8Array(await blob.arrayBuffer())});
+    }
+    const pdf=buildPdf(out), name=(srcName||'spartito')+'-con-nomi.pdf';
+    // app Android: salva in Download e apre "Condividi"
+    if(window.AndroidApp&&AndroidApp.savePdf){
+      const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(String(fr.result).split(',')[1]);fr.readAsDataURL(pdf);});
+      AndroidApp.savePdf(b64,name); toast('PDF salvato in Download ✔',3500); return;
+    }
+    // pagina dentro Claude: salvataggio tramite la conferma di Claude
+    if(window.claude&&typeof claude.use==='function'){
+      try{ const dl=await claude.use('downloads');
+        if(dl){ await dl.save({filename:name,data:pdf}); toast('PDF salvato ✔',3000); return; } }
+      catch(e){ if(e&&e.code==='declined'){toast('Salvataggio annullato',2500);return;} }
+    }
+    const url=URL.createObjectURL(pdf), a=document.createElement('a');
+    a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    toast('PDF pronto: '+name+' (cartella Download)',4000);
+  }catch(e){toast('Errore nel creare il PDF: '+e.message,4000);console.error(e);}
 }
 function setNames(v){S.showNames=v;save();['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',v));$('namesOn').classList.toggle('on',v);$('namesOff').classList.toggle('on',!v);if(v&&loaded&&!scanned)scanScore();drawOverlay();}
 
@@ -1591,7 +1657,7 @@ const DEMO_CH=[ // [note dell'accordo, sigla, carattere]
   [[2,4,6],'Sol','28px "DejaVu Sans",sans-serif'],[[0,2,4],'',''],[[5,7,9],'Re7','bold 28px Inter,sans-serif'],[[4,6,8],'Bb','bold 30px "Bitstream Charter",serif']
 ];
 function demo(){
-  sources=[]; pages=[]; setSize(1600,1470);
+  sources=[]; pages=[]; srcName='esempio'; setSize(1600,1470);
   const sp=22, staves=[160,490,820,1180];
   ctx.fillStyle='#000'; ctx.strokeStyle='#000';
   staves.forEach((top,si)=>{
@@ -1689,6 +1755,7 @@ function setSound(id){
 $('soundSel').onchange=e=>setSound(e.target.value);
 $('hSound').onchange=e=>setSound(e.target.value);
 $('namesOn').onclick=()=>setNames(true);
+['pdfBtn','pdfBtn2','mPdf'].forEach(id=>$(id).onclick=exportPdf);
 $('namesOff').onclick=()=>setNames(false);
 applyPanelH(); applyLook(); refreshZoneUI(); setBpm(S.bpm); document.body.classList.toggle('onlyNeck',!!S.onlyNeck); layout(); $('rhythm').value=S.rhythm; $('soundSel').value=S.sound; $('hSound').value=S.sound; document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===S.sound)); $('meterSel').value=S.meter||'auto'; $('namesBtn').onclick=()=>setNames(!S.showNames); $('mNames').onclick=()=>setNames(!S.showNames); ['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',!!S.showNames)); $('namesOn').classList.toggle('on',!!S.showNames); $('namesOff').classList.toggle('on',!S.showNames); $('loopBtn').classList.toggle('on',S.loop); $('ovBtn').classList.toggle('on',S.showOv);
 </script>
