@@ -1,0 +1,77 @@
+name: Compila APK
+
+on:
+  push:
+    paths:
+      - 'PosizioneSpartiti-android.zip'
+      - 'index.html'
+      - '.github/workflows/compila-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica il repository
+        uses: actions/checkout@v4
+
+      - name: Estrai il progetto Android dallo zip
+        run: |
+          rm -rf progetto
+          mkdir progetto
+          unzip -q PosizioneSpartiti-android.zip -d progetto
+          # se lo zip contiene una cartella in più, la tolgo
+          if [ ! -f progetto/build.gradle ]; then
+            sub=$(dirname "$(find progetto -name build.gradle | head -n 1)")
+            cp -r "$sub"/. progetto/
+          fi
+          ls -la progetto
+
+      - name: Usa l'index.html del repository (stessa versione del sito)
+        run: |
+          if [ -f index.html ]; then cp index.html progetto/src/main/assets/index.html; fi
+
+      - name: Metti il lettore PDF dentro l'app (funziona anche senza internet)
+        run: |
+          cd progetto/src/main/assets
+          curl -fsSL -o pdf.min.js https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js
+          curl -fsSL -o pdf.worker.min.js https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js
+          sed -i 's#https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/#./#g' index.html
+          grep -n "pdf.min.js\|pdf.worker.min.js" index.html | head
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Compila l'APK
+        run: |
+          cd progetto
+          gradle assembleRelease -Pvc=${{ github.run_number }} --no-daemon --stacktrace
+          mkdir -p ../uscita
+          cp build/outputs/apk/release/*.apk ../uscita/SpartitoChitarra-v1.${{ github.run_number }}.apk
+          ls -la ../uscita
+
+      - name: Salva l'APK tra gli artefatti
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpartitoChitarra-APK
+          path: uscita/*.apk
+
+      - name: Pubblica l'APK in Releases (facile da scaricare dal telefono)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: Spartito Chitarra 1.${{ github.run_number }}
+          body: APK pronto da installare sul telefono.
+          files: uscita/*.apk
+          make_latest: true
