@@ -685,10 +685,10 @@ function staffStart(c){
   }
   return x+gap;
 }
-function findStem(st,cx,cy){
+function findStem(st,cx,cy,wide){
   const sp=st.sp, rx=sp*0.55, maxL=Math.round(sp*5.5); let best=null;
   for(const dir of [-1,1]){                      // -1 = gambo in su (a destra), 1 = in giù (a sinistra)
-    const xa=Math.round(dir<0?cx+rx*0.5:cx-rx*1.65), xb=Math.round(dir<0?cx+rx*1.65:cx-rx*0.5);   // le minime hanno teste larghe: il gambo può stare più in là
+    const xw=wide?1.65:1.35, xa=Math.round(dir<0?cx+rx*0.5:cx-rx*xw), xb=Math.round(dir<0?cx+rx*xw:cx-rx*0.5);   // le minime (teste vuote) possono essere larghe: il gambo può stare più in là
     for(let x=xa;x<=xb;x++){
       if(x<0||x>=W) continue;
       const y0=Math.round(cy); let last=y0, gap=0;
@@ -1154,8 +1154,8 @@ function scanScore(){
     const found=[], loose=[];
     for(const k of acc){
       if(!ledgersOk(k.st,k.x,k.s)) continue;
-      if(k.kind==='h'&&!isolated(k.st,k.x,k.cy)&&!stemOk(k.st,findStem(k.st,k.x,k.cy))) continue;
-      let stem=findStem(k.st,k.x,k.cy); if(!stemOk(k.st,stem)) stem=null; let dur;
+      if(k.kind==='h'&&!isolated(k.st,k.x,k.cy)&&!stemOk(k.st,findStem(k.st,k.x,k.cy,true))) continue;
+      let stem=findStem(k.st,k.x,k.cy,k.kind==='h'); if(!stemOk(k.st,stem)) stem=null; let dur;
       if(k.kind==='f'){ if(!stem){ loose.push(k); continue; } dur=hasBeamFlag(k.st,stem)?[0.5,0.5,0.25,0.125][beamCount(k.st,stem)]:1; }
       else{
         dur=stem?2:4;
@@ -1170,7 +1170,11 @@ function scanScore(){
       found.push({k,stem,dur});
     }
     // accordi: lungo il gambo di una nota trovata cerco le altre teste (una ogni terza, stessa colonna)
+    const sameStem=(a,b)=>Math.abs(a.k.x-b.k.x)<a.k.st.sp*0.6&&Math.abs(a.k.s-b.k.s)>=2&&Math.abs(a.k.s-b.k.s)<=12&&a.k.kind===b.k.kind&&
+      (a.stem&&b.stem?a.stem.dir===b.stem.dir&&Math.abs(a.stem.x-b.stem.x)<=a.k.st.sp*0.35:!a.stem&&!b.stem&&a.dur>=4&&b.dur>=4);
     for(const f of found.slice()){ if(f.mate) continue; const st=f.k.st, sp=st.sp, x=f.k.x;
+      // solo dentro un accordo vero (almeno un'altra testa sullo stesso gambo): una nota singola resta singola
+      if(!found.some(o=>o!==f&&!o.mate&&sameStem(f,o))) continue;
       // semibrevi una sopra l'altra (niente gambo): cerco vicino, nella stessa colonna
       const stm=f.stem||(f.dur>=4?{dir:-1,x:Math.round(x),tip:f.k.cy-sp*5.4,whole:true}:null); if(!stm) continue;
       // estensione del gambo dall'altra parte (passa per le altre teste)
@@ -1212,7 +1216,7 @@ function scanScore(){
     // scarto ciò che sta sulla punta del gambo di un'altra nota (bandierine, travature)
     for(const f of found){
       if(f.k.kind==='h'&&!f.mate&&found.some(o=>o!==f&&(o.k.kind==='f'||o.k.sc>f.k.sc||(o.stem&&!f.stem))&&Math.abs(o.k.x-f.k.x)<o.k.st.sp*1.6&&Math.abs(o.k.s-f.k.s)<=2
-        &&!(f.stem&&Math.abs(o.k.s-f.k.s)>=2))) continue;   // a una terza o più con il suo gambo: è un'altra nota dell'accordo
+        &&!(f.stem&&Math.abs(o.k.s-f.k.s)>=2&&(o.k.kind==='h'||!o.stem||o.stem.dir!==f.stem.dir||Math.abs(o.stem.x-f.stem.x)>o.k.st.sp*0.5)))) continue;   // gambo diverso (due voci) o accordo di minime
       const bad=!f.mate&&found.some(o=>o!==f&&o.stem&&o.k.sc>=f.k.sc-0.05&&(o.k.kind==='f'||f.k.kind==='h')&&Math.abs(f.k.cy-o.stem.tip)<o.k.st.sp*1.6&&f.k.x>o.stem.x-o.k.st.sp*0.5&&f.k.x<o.stem.x+o.k.st.sp*1.5);
       if(f.k.x<noteMinX(c,f.k.st.sp)) continue;   // chiave, armatura e tempo: lì non ci sono note
       if(!bad) notes.push({x:f.k.x,step:f.k.s,ov:null,st:f.k.st,dur:f.dur,chain:ci,side:!!f.mate,kind:f.k.kind});
@@ -1891,8 +1895,10 @@ async function tick(){
     const top=g.reduce((a,b)=>b.step>a.step?b:a);
     cur={st:top.st,step:top.step,x:top.x,ov:top.ov,pos:null,idx:notes.indexOf(top)}; restIdx=null;
     update(false);
-    if(g.length>1) $('msg').textContent='Più note insieme (basso e melodia o accordo): le suono tutte, sul manico vedi la più alta.';
-    const others=g.filter(n=>n!==top).sort((a,b)=>a.step-b.step);
+    // suono tutte le note solo se è un accordo vero (teste incolonnate sullo stesso gambo); altrimenti, come prima, la più alta
+    const sp0=top.st.sp, real=g.length>1&&g.filter(n=>Math.abs(n.x-top.x)<=sp0*0.6||n.side).length>=2;
+    if(g.length>1) $('msg').textContent=real?'Accordo: suono tutte le sue note, sul manico vedi la più alta.':'Più note vicine: suono la più alta.';
+    const others=real?g.filter(n=>n!==top&&(Math.abs(n.x-top.x)<=sp0*0.6||n.side)).sort((a,b)=>a.step-b.step):[];
     others.forEach((n,i)=>setTimeout(()=>pluck(pitch(n.step,n.ov).sound,0.4*(g.vol||1)),i*18));
     setTimeout(()=>pluck(pitch(top.step,top.ov).sound,0.45*(g.vol||1)),others.length*18); handsPluck(cur.pos);
   }
