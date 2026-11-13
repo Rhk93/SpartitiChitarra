@@ -778,7 +778,8 @@ function beamNear(st,x,cy){ const sp=st.sp; let run=0,best=0;
     // vicino alle righe del pentagramma non guardo (le righe sono lunghe ma sottili)
     const k=Math.round((y-st.top)/sp); if(k>=0&&k<=4&&Math.abs(y-(st.top+k*sp))<=st.t/2+sp*0.16) continue;
     // la travatura prosegue almeno da un lato per più di uno spazio e mezzo (un taglio addizionale no: è corto)
-    if(Math.max(segDark(y,x-sp*1.6,x),segDark(y,x,x+sp*1.6))>=0.9){run++;best=Math.max(best,run);} else run=0; }
+    // (anche una travatura corta di due crome: barra continua più lunga di una testa)
+    if(Math.max(segDark(y,x-sp*1.6,x),segDark(y,x,x+sp*1.6))>=0.9||hRun(st,x,y)>=1.7){run++;best=Math.max(best,run);} else run=0; }
   return best>=sp*0.3; }
 function barNear(st,x,r){ for(let d=-r*st.sp;d<=r*st.sp;d+=1) if(barAt(st,x+d)) return true; return false; }
 function rowDark(st,y,x0,x1){
@@ -1584,15 +1585,34 @@ function strum(frets,v=1){
   frets.map((f,s)=>({f,s})).filter(o=>o.f>=0).sort((a,b)=>b.s-a.s).forEach((o,i)=>setTimeout(()=>pluck(OPEN[o.s]+o.f,0.26*v),i*28));
 }
 let chordShown=null;
+// posizione sul manico delle note SCRITTE dell'accordo: ogni nota su una corda diversa,
+// la più grave sulla corda più grave, tasti il più vicini possibile (mano comoda)
+function writtenVoicing(g){
+  const ms=[...new Set(g.filter(n=>!n.rest).map(n=>pitch(n.step,n.ov).sound))].sort((a,b)=>a-b);
+  if(ms.length<2||ms.length>6) return null;
+  const z=zone(); let best=null;
+  const rec=(i,minStr,used)=>{ // corde: indice 5 = 6ª (Mi grave) … 0 = 1ª (Mi acuto)
+    if(i===ms.length){ const fr=used.filter(u=>u.f>0).map(u=>u.f), span=fr.length?Math.max(...fr)-Math.min(...fr):0;
+      if(span>4) return; const out=used.reduce((a,u)=>a+(inZone(u.f,z)?0:1),0);
+      const sc=span*3+out*5+fr.reduce((a,f)=>a+f,0)*0.15;
+      if(!best||sc<best.sc) best={sc,used:used.slice()}; return; }
+    for(let s=minStr;s>=0;s--){ const f=ms[i]-OPEN[s]; if(f<0||f>NFRETS) continue; used.push({s,f}); rec(i+1,s-1,used); used.pop(); }
+  };
+  rec(0,5,[]);
+  if(!best) return null;
+  const frets=[-1,-1,-1,-1,-1,-1]; for(const u of best.used) frets[u.s]=u.f; return frets;
+}
 function showChord(g){
-  const sym=g.sym, frets=chordVoicing(sym,zone()), top=g.reduce((a,b)=>b.step>a.step?b:a);
+  const sym=g.sym, top=g.reduce((a,b)=>b.step>a.step?b:a);
+  const wv=writtenVoicing(g), frets=wv||chordVoicing(sym,zone());
+  const names=g.filter(n=>!n.rest).sort((a,b)=>a.step-b.step).map(n=>noteLabel(n)).join(' ');
   cur=null; restIdx=null; chordShown=g;
   const m=$('marker'); m.style.display='block';
   m.style.left=(top.x/W*100)+'%'; m.style.top=(noteY(top)/H*100)+'%'; m.style.width=(top.st.sp*1.7/W*100)+'%';
   $('mlabel').textContent=sym.text;
   $('noteName').textContent=sym.text;
-  $('noteInfo').innerHTML='<b>Accordo di '+sym.it+'</b><br><small>'+(frets?'corde 6→1: '+shapeText(frets):'diteggiatura non trovata')+'</small>';
-  $('msg').textContent='Ho letto la sigla sopra il pentagramma: suono l\'accordo intero.';
+  $('noteInfo').innerHTML='<b>Accordo di '+sym.it+'</b> · note scritte: <b>'+names+'</b><br><small>'+(frets?'corde 6→1: '+shapeText(frets):'diteggiatura non trovata')+'</small>';
+  $('msg').textContent=wv?'Sul manico: le note scritte sullo spartito, dalla più grave alla più acuta.':'Sul manico: la posizione dell\'accordo indicato dalla sigla.';
   ['fl','na','sh'].forEach(id=>$(id).classList.remove('on'));
   ['delBtn','addBtn','durSel','chordBtn'].forEach(id=>$(id).style.display='none');
   drawFret([],-1,null,frets);
@@ -1889,7 +1909,11 @@ async function tick(){
   }
   const g=seq[playIdx];
   if(g[0].rest) showRest(notes.indexOf(g[0]));
-  else if(g.length>1&&g.sym){ const fr=showChord(g); if(fr) strum(fr,g.vol||1); }
+  else if(g.length>1&&g.sym){ const fr=showChord(g);
+    // suono le note SCRITTE dell'accordo (dal basso all'acuto), non la posizione completa della sigla
+    const ns=g.filter(n=>!n.rest).sort((a,b)=>a.step-b.step);
+    if(ns.length>=2) ns.forEach((n,i)=>setTimeout(()=>pluck(pitch(n.step,n.ov).sound,0.4*(g.vol||1)),i*22));
+    else if(fr) strum(fr,g.vol||1); }
   else{
     // più note insieme senza sigla leggibile: suono solo la nota più alta
     const top=g.reduce((a,b)=>b.step>a.step?b:a);
