@@ -663,11 +663,12 @@ function findStem(st,cx,cy){
       const y0=Math.round(cy); let last=y0, gap=0;
       for(let k=0;k<maxL;k++){const yy=y0+dir*k; if(yy<0||yy>=H) break; if(dark[yy*W+x]){gap=0;last=yy;} else if(++gap>2) break;}
       const len=Math.abs(last-y0);
-      if(len>=sp*2.8&&(!best||len>best.len)) best={dir,x,len,tip:last};
+      if(len>=sp*1.7&&(!best||len>best.len)) best={dir,x,len,tip:last};
     }
   }
   return best;
 }
+function stemOk(st,stem){ return !!stem&&(stem.len>=st.sp*2.8||(stem.len>=st.sp*1.7&&hasBeamFlag(st,stem))); }
 function hasBeamFlag(st,stem){
   const sp=st.sp, a=stem.dir<0?stem.tip-Math.round(sp*0.1):stem.tip-Math.round(sp*1.3), b=stem.dir<0?stem.tip+Math.round(sp*1.3):stem.tip+Math.round(sp*0.1);
   let best=0;
@@ -692,6 +693,16 @@ function hasDot(st,cx,cy){
   }
   return false;
 }
+// riga piena (travatura) vicino a y, saltando le righe del pentagramma
+function beamRow(st,y,x0,x1){ let b=0; const r=Math.max(1,Math.round(st.sp*0.12));
+  for(let yy=Math.round(y)-r;yy<=Math.round(y)+r;yy++){ if(yy<0||yy>=H||isLineRow(st,yy)) continue; b=Math.max(b,segDark(yy,x0,x1)); } return b; }
+// lunghezza del tratto nero orizzontale che passa per (x,y): una testa è larga ~1,2 spazi, una travatura molto di più
+function hRun(st,x,y){ y=Math.round(y); const r=Math.max(1,Math.round(st.sp*0.1));
+  let yy=-1; for(let d=0;d<=r&&yy<0;d++){ for(const v of [y+d,y-d]) if(v>=0&&v<H&&!isLineRow(st,v)&&yy<0) yy=v; }
+  if(yy<0) return 0; x=Math.round(x); const o=yy*W; if(!dark[o+x]) return 0;
+  let a=x,b=x,gap=0; while(a>0){ if(dark[o+a-1]){a--;gap=0;} else if(++gap<=1&&a>1&&dark[o+a-2]){a-=2;} else break; }
+  while(b<W-1){ if(dark[o+b+1]) b++; else if(b<W-2&&dark[o+b+2]) b+=2; else break; }
+  return (b-a+1)/st.sp; }
 function rowDark(st,y,x0,x1){
   y=Math.round(y); if(y<0||y>=H||isLineRow(st,y)) return 1;
   let c=0,t=0; for(let x=Math.round(x0);x<=Math.round(x1);x++){if(x<0||x>=W)continue;c+=dark[y*W+x];t++;} return t?c/t:0;
@@ -893,22 +904,23 @@ function scanScore(){
         if(f>=0.72){
           if(rowDark(st,cy-sp*0.33,x-sp*0.25,x+sp*0.25)<0.5||rowDark(st,cy+sp*0.33,x-sp*0.25,x+sp*0.25)<0.5) continue;
           if(ellFill(st,x-sp*1.2,cy,rx*0.8,ry*0.8)>0.5&&ellFill(st,x+sp*1.2,cy,rx*0.8,ry*0.8)>0.5) continue;   // travatura
+          if(hRun(st,x,cy-sp*0.22)>=2&&hRun(st,x,cy+sp*0.22)>=2) continue;   // travatura (anche all'inizio o alla fine)
           cands.push({x,s,cy,st,sc:f,kind:'f'});
         }else if(f<0.6){
           const r=ringInfo(st,x,cy,sp*0.6,sp*0.42);
-          if(r.f>=0.55&&r.sec>=8&&ellFill(st,x,cy,rx*0.35,ry*0.35)<=0.3) cands.push({x,s,cy,st,sc:r.f,kind:'h'});
+          if(((r.f>=0.55&&r.sec>=8)||(r.f>=0.7&&r.sec>=7))&&ellFill(st,x,cy,rx*0.35,ry*0.35)<=0.3&&!(beamRow(st,cy-sp*0.45,x-sp*1.4,x+sp*1.4)>0.85&&beamRow(st,cy+sp*0.45,x-sp*1.4,x+sp*1.4)>0.85)) cands.push({x,s,cy,st,sc:r.f,kind:'h'});
         }
       }
     }
     cands.sort((a,b)=>b.sc-a.sc);
     const acc=[];
     for(const k of cands){ if(acc.some(a=>Math.abs(a.x-k.x)<k.st.sp*0.9&&Math.abs(a.s-k.s)<=1)) continue; acc.push(k); }
-    const found=[];
+    const found=[], loose=[];
     for(const k of acc){
       if(!ledgersOk(k.st,k.x,k.s)) continue;
-      if(k.kind==='h'&&!isolated(k.st,k.x,k.cy)) continue;
-      const stem=findStem(k.st,k.x,k.cy); let dur;
-      if(k.kind==='f'){ if(!stem) continue; dur=hasBeamFlag(k.st,stem)?0.5:1; }
+      if(k.kind==='h'&&!isolated(k.st,k.x,k.cy)&&!stemOk(k.st,findStem(k.st,k.x,k.cy))) continue;
+      let stem=findStem(k.st,k.x,k.cy); if(!stemOk(k.st,stem)) stem=null; let dur;
+      if(k.kind==='f'){ if(!stem){ loose.push(k); continue; } dur=hasBeamFlag(k.st,stem)?0.5:1; }
       else{
         dur=stem?2:4;
         if(!stem){ // semibreve: sopra e sotto deve esserci bianco (scarta pause e segni verticali)
@@ -920,11 +932,18 @@ function scanScore(){
       if(hasDot(k.st,k.x,k.cy)) dur*=1.5;
       found.push({k,stem,dur});
     }
+    for(const k of loose){ const sp=k.st.sp;
+      const mate=found.find(o=>o.k.kind==='f'&&o.stem&&Math.abs(o.k.x-k.x)<=sp*1.45&&Math.abs(o.k.x-k.x)>=sp*0.8&&Math.abs(o.k.s-k.s)<=1
+        &&(o.stem.dir<0?k.cy>=o.stem.tip:k.cy<=o.stem.tip)&&Math.min(Math.abs(o.stem.x-(k.x-sp*0.55)),Math.abs(o.stem.x-(k.x+sp*0.55)))<=sp*0.35);
+      if(mate&&ellFill(k.st,k.x,k.cy,sp*0.5,sp*0.34)>=0.8) found.push({k,stem:null,dur:mate.dur,mate});
+    }
     // scarto ciò che sta sulla punta del gambo di un'altra nota (bandierine, travature)
     for(const f of found){
-      if(f.k.kind==='h'&&found.some(o=>o!==f&&(o.k.kind==='f'||o.k.sc>f.k.sc||(o.stem&&!f.stem))&&Math.abs(o.k.x-f.k.x)<o.k.st.sp*1.6&&Math.abs(o.k.s-f.k.s)<=2)) continue;
-      const bad=found.some(o=>o!==f&&o.stem&&Math.abs(f.k.cy-o.stem.tip)<o.k.st.sp*1.6&&f.k.x>o.stem.x-o.k.st.sp*0.5&&f.k.x<o.stem.x+o.k.st.sp*1.5);
-      if(!bad) notes.push({x:f.k.x,step:f.k.s,ov:null,st:f.k.st,dur:f.dur,chain:ci});
+      if(f.k.kind==='h'&&found.some(o=>o!==f&&(o.k.kind==='f'||o.k.sc>f.k.sc||(o.stem&&!f.stem))&&Math.abs(o.k.x-f.k.x)<o.k.st.sp*1.6&&Math.abs(o.k.s-f.k.s)<=2
+        &&!(f.stem&&Math.abs(o.k.s-f.k.s)>=2&&(!o.stem||o.stem.dir!==f.stem.dir||Math.abs(o.stem.x-f.stem.x)>o.k.st.sp*0.5)))) continue;
+      const bad=!f.mate&&found.some(o=>o!==f&&o.stem&&o.k.sc>=f.k.sc-0.05&&(o.k.kind==='f'||f.k.kind==='h')&&Math.abs(f.k.cy-o.stem.tip)<o.k.st.sp*1.6&&f.k.x>o.stem.x-o.k.st.sp*0.5&&f.k.x<o.stem.x+o.k.st.sp*1.5);
+      if(f.k.x<c.start+f.k.st.sp*3) continue;   // dentro la chiave di violino
+      if(!bad) notes.push({x:f.k.x,step:f.k.s,ov:null,st:f.k.st,dur:f.dur,chain:ci,side:!!f.mate});
     }
     notes.push(...scanRests(c,ci));
   });
@@ -939,7 +958,7 @@ function buildSeq(){
   const ok=notes.filter(n=>!n.del&&(n.added||n.x>chains[n.chain].start+n.st.sp*(3.2+ks*1.05+(n.chain===0?2.6:0))));
   ok.sort((a,b)=>a.chain-b.chain||a.x-b.x);
   seq=[];
-  for(const n of ok){const g=seq[seq.length-1]; if(g&&!n.rest&&!g[0].rest&&g[0].chain===n.chain&&n.x-g[0].x<n.st.sp*0.8) g.push(n); else seq.push([n]);}
+  for(const n of ok){const g=seq[seq.length-1]; if(g&&!n.rest&&!g[0].rest&&g[0].chain===n.chain&&n.x-g[0].x<n.st.sp*((n.side||g.some(m=>m.side))?1.45:0.8)) g.push(n); else seq.push([n]);}
   for(const g of seq) if(g.length>1){
     const k=g[0].chain+':'+Math.round(Math.min(...g.map(n=>n.x))/4);
     if(!symCache.has(k)){let r=null;try{r=readSymbol(g);}catch(e){console.error(e);} symCache.set(k,r);}
@@ -1558,8 +1577,10 @@ async function tick(){
     const top=g.reduce((a,b)=>b.step>a.step?b:a);
     cur={st:top.st,step:top.step,x:top.x,ov:top.ov,pos:null,idx:notes.indexOf(top)}; restIdx=null;
     update(false);
-    if(g.length>1) $('msg').textContent='Più note insieme, sigla dell\'accordo non letta: suono la nota più alta.';
-    pluck(pitch(top.step,top.ov).sound,0.45*(g.vol||1)); handsPluck(cur.pos);
+    if(g.length>1) $('msg').textContent='Più note insieme (basso e melodia o accordo): le suono tutte, sul manico vedi la più alta.';
+    const others=g.filter(n=>n!==top).sort((a,b)=>a.step-b.step);
+    others.forEach((n,i)=>setTimeout(()=>pluck(pitch(n.step,n.ov).sound,0.4*(g.vol||1)),i*18));
+    setTimeout(()=>pluck(pitch(top.step,top.ov).sound,0.45*(g.vol||1)),others.length*18); handsPluck(cur.pos);
   }
   $('marker').scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
   const beats=S.rhythm==='uguali'?1:(g.beats||Math.min(...g.map(n=>n.dur)));
