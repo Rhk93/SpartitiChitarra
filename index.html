@@ -486,7 +486,13 @@ async function renderAll(){
       tmp.width=Wt; tmp.height=ph; const tc=tmp.getContext('2d'); tc.fillStyle='#fff'; tc.fillRect(0,0,Wt,ph);
       await p.page.render({canvasContext:tc,viewport:vp,background:'#ffffff'}).promise;
       ctx.drawImage(tmp,0,0,Wt,ph,0,y,Wt,ph);
-    }else ctx.drawImage(p.img,0,y,Wt,ph);
+    }else{
+      // foto grandi: le riduco a metà alla volta, con il filtro migliore, così le righe sottili non spariscono
+      let src=p.img, sw=p.w, sh=p.h;
+      while(sw>Wt*2){ const c2=document.createElement('canvas'); c2.width=Math.round(sw/2); c2.height=Math.round(sh/2);
+        const g2=c2.getContext('2d'); g2.imageSmoothingEnabled=true; g2.imageSmoothingQuality='high'; g2.drawImage(src,0,0,c2.width,c2.height); src=c2; sw=c2.width; sh=c2.height; }
+      ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high'; ctx.drawImage(src,0,y,Wt,ph);
+    }
     pages.push({y0:y,y1:y+ph});
     y+=ph;
     if(i<list.length-1){ctx.fillStyle='#e9e4da';ctx.fillRect(0,y,Wt,PAGE_GAP);ctx.fillStyle='#b8ab95';ctx.font='bold 18px sans-serif';ctx.fillText('pagina '+(i+2),12,y+PAGE_GAP-11);y+=PAGE_GAP;}
@@ -550,7 +556,14 @@ function analyze(){
   dark=new Uint8Array(n);
   for(let y=0;y<H;y++){const ty=Math.min(th-1,(y/T)|0);for(let x=0;x<W;x++){
     const b=bg[ty*tw+Math.min(tw-1,(x/T)|0)], l=lum[y*W+x];
-    dark[y*W+x]=(l<b*0.72||l<70)?1:0;
+    // linee sottili rimpicciolite diventano grigie e "spalmate" su due righe: grigio chiaro con un vicino grigio conta come nero
+    let dk=l<b*0.72||l<70;
+    // (solo per tratti sottili: al massimo 2 pixel di spessore e che continuano; le macchie sfocate restano come sono)
+    if(!dk&&l<b*0.86&&y>1&&y<H-2&&x>1&&x<W-2){ const i=y*W+x, t=b*0.86, L=k=>lum[k]<t;
+      const thinH=((!L(i-W)&&!L(i+W))||(L(i-W)&&!L(i-2*W)&&!L(i+W))||(L(i+W)&&!L(i+2*W)&&!L(i-W)))&&((L(i-1)&&L(i-2))||(L(i+1)&&L(i+2)));
+      const thinV=((!L(i-1)&&!L(i+1))||(L(i-1)&&!L(i-2)&&!L(i+1))||(L(i+1)&&!L(i+2)&&!L(i-1)))&&((L(i-W)&&L(i-2*W))||(L(i+W)&&L(i+2*W)));
+      dk=thinH; }   // (solo righe orizzontali sottili: righe del pentagramma e tagli addizionali)
+    dark[y*W+x]=dk?1:0;
   }}
 }
 
@@ -675,7 +688,7 @@ function staffStart(c){
 function findStem(st,cx,cy){
   const sp=st.sp, rx=sp*0.55, maxL=Math.round(sp*5.5); let best=null;
   for(const dir of [-1,1]){                      // -1 = gambo in su (a destra), 1 = in giù (a sinistra)
-    const xa=Math.round(dir<0?cx+rx*0.5:cx-rx*1.35), xb=Math.round(dir<0?cx+rx*1.35:cx-rx*0.5);
+    const xa=Math.round(dir<0?cx+rx*0.5:cx-rx*1.65), xb=Math.round(dir<0?cx+rx*1.65:cx-rx*0.5);   // le minime hanno teste larghe: il gambo può stare più in là
     for(let x=xa;x<=xb;x++){
       if(x<0||x>=W) continue;
       const y0=Math.round(cy); let last=y0, gap=0;
@@ -735,8 +748,19 @@ function ringWidth(st,x,cy){ // testa vuota: bordo nero a sinistra e a destra de
     let l=-1,r=-1; for(let d=0;d<=st.sp*0.95;d++){ if(l<0&&dark[o+Math.round(x-d)]) l=d; if(r<0&&dark[o+Math.round(x+d)]) r=d; }
     if(l>=st.sp*0.15&&r>=st.sp*0.15&&Math.abs(l-r)<=st.sp*0.35) best=Math.max(best,(l+r)/st.sp); } return best; }
 // stanghetta: una colonna nera da cima a fondo del pentagramma
-function barAt(st,x){ for(let dx=-1;dx<=1;dx++){ const xx=Math.round(x)+dx; if(xx<0||xx>=W) continue; let k=0,t=0;
-  for(let y=Math.round(st.top);y<=Math.round(st.bottom);y++){t++; if(dark[y*W+xx]) k++;} if(k>=t*0.96) return true; } return false; }
+// (il gambo di un accordo può attraversare tutto il pentagramma, ma va oltre: la stanghetta si ferma alla prima e all'ultima riga)
+function barAt(st,x){ const ya=Math.round(st.top-st.sp*0.6), yb=Math.round(st.bottom+st.sp*0.6);
+  for(let dx=-1;dx<=1;dx++){ const xx=Math.round(x)+dx; if(xx<1||xx>=W-1) continue; let k=0,t=0;
+    for(let y=Math.round(st.top);y<=Math.round(st.bottom);y++){t++; if(dark[y*W+xx]) k++;}
+    if(k<t*0.96) continue;
+    const out=y=>y>=0&&y<H&&(dark[y*W+xx]||dark[y*W+xx-1]||dark[y*W+xx+1]);
+    if(!out(ya)&&!out(yb)) return true; }
+  return false; }
+// testa vuota: bordo nero sia a sinistra sia a destra del buco, all'altezza del centro
+function hollowWalls(st,x,cy){ const sp=st.sp; let L=false,R=false;
+  for(const f of [-0.12,0,0.12]){ const y=Math.round(cy+f*sp); if(y<0||y>=H||isLineRow(st,y)) continue;
+    if(segDark(y,x-sp*0.8,x-sp*0.3)>0) L=true; if(segDark(y,x+sp*0.3,x+sp*0.8)>0) R=true; }
+  return L&&R; }
 function barNear(st,x,r){ for(let d=-r*st.sp;d<=r*st.sp;d+=1) if(barAt(st,x+d)) return true; return false; }
 function rowDark(st,y,x0,x1){
   y=Math.round(y); if(y<0||y>=H||isLineRow(st,y)) return 1;
@@ -1093,7 +1117,7 @@ function scanScore(){
           cands.push({x,s,cy,st,sc:f,kind:'f'});
         }else if(f<0.6){
           const r=ringInfo(st,x,cy,sp*0.6,sp*0.42);
-          if(((r.f>=0.55&&r.sec>=8)||(r.f>=0.7&&r.sec>=7))&&ellFill(st,x,cy,rx*0.35,ry*0.35)<=0.3&&ringWidth(st,x,cy)>=0.55&&!barNear(st,x,0.8)&&!(beamRow(st,cy-sp*0.45,x-sp*1.4,x+sp*1.4)>0.85&&beamRow(st,cy+sp*0.45,x-sp*1.4,x+sp*1.4)>0.85)) cands.push({x,s,cy,st,sc:r.f,kind:'h'});
+          if(((r.f>=0.55&&r.sec>=8)||(r.f>=0.7&&r.sec>=7))&&ellFill(st,x,cy,rx*0.35,ry*0.35)<=0.3&&!barNear(st,x,0.8)&&!(beamRow(st,cy-sp*0.45,x-sp*1.4,x+sp*1.4)>0.85&&beamRow(st,cy+sp*0.45,x-sp*1.4,x+sp*1.4)>0.85)) cands.push({x,s,cy,st,sc:r.f,kind:'h'});
         }
       }
     }
@@ -1117,6 +1141,39 @@ function scanScore(){
       if(hasDot(k.st,k.x,k.cy)) dur*=1.5;
       found.push({k,stem,dur});
     }
+    // accordi: lungo il gambo di una nota trovata cerco le altre teste (una ogni terza, stessa colonna)
+    for(const f of found.slice()){ if(f.mate) continue; const st=f.k.st, sp=st.sp, x=f.k.x;
+      // semibrevi una sopra l'altra (niente gambo): cerco vicino, nella stessa colonna
+      const stm=f.stem||(f.dur>=4?{dir:-1,x:Math.round(x),tip:f.k.cy-sp*5.4,whole:true}:null); if(!stm) continue;
+      // estensione del gambo dall'altra parte (passa per le altre teste)
+      let base=Math.round(f.k.cy), gap=0; const dir=stm.dir, sx=stm.x;
+      for(let k=1;k<sp*8;k++){ const y=Math.round(f.k.cy)-dir*k; if(y<0||y>=H) break; if(dark[y*W+sx]||dark[y*W+sx-1]||dark[y*W+sx+1]){gap=0;base=y;} else if(++gap>Math.max(3,sp*0.25)) break; }
+      if(stm.whole) base=Math.round(f.k.cy+sp*3.2);
+      const yA=Math.min(base,stm.tip-dir*sp*2.2), yB=Math.max(base,stm.tip-dir*sp*2.2);
+      for(let s2=f.k.s-12;s2<=f.k.s+12;s2++){
+        const odd=(s2-f.k.s)%2!==0;   // accordi "aperti" (non solo terze): ammessi, ma con una prova più severa
+        if(s2===f.k.s) continue; const cy=st.bottom-s2*sp/2;
+        if(cy<Math.min(yA,yB)-sp*0.6||cy>Math.max(yA,yB)+sp*0.6) continue;
+        if(stm.whole?Math.abs(cy-f.k.cy)>sp*3.2:(dir<0?cy<stm.tip+sp*2.2:cy>stm.tip-sp*2.2)) continue;     // vicino alla punta del gambo: travature, non teste
+        if(found.some(o=>Math.abs(o.k.x-x)<sp*0.7&&Math.abs(o.k.s-s2)<=1)) continue;
+        let bx=x, kind=null, sc=0;
+        for(let dx=-sp*0.3;dx<=sp*0.3;dx+=Math.max(1,sp/8)){
+          const ef=ellFill(st,x+dx,cy,sp*0.44,sp*0.3);
+          if(ef>=(odd?0.82:0.7)&&ef>sc){ sc=ef; bx=x+dx; kind='f'; continue; }
+          const r=ringInfo(st,x+dx,cy,sp*0.6,sp*0.42);
+          if(ef<0.6&&r.f>=(odd?0.62:0.45)&&r.sec>=(odd?7:6)&&ellFill(st,x+dx,cy,sp*0.19,sp*0.13)<=0.35&&r.f>sc){ sc=r.f; bx=x+dx; kind='h'; }
+        }
+        if(!kind||kind!==f.k.kind||!ledgersOk(st,bx,s2)) continue;   // stesso gambo = stessa durata: teste tutte piene o tutte vuote
+        // stesse prove delle altre note: niente travature, bandierine, stanghette
+        if(kind==='f'){ const rx=sp*0.55*0.8, ry=sp*0.38*0.8;
+          if(rowDark(st,cy-sp*0.33,bx-sp*0.25,bx+sp*0.25)<0.5||rowDark(st,cy+sp*0.33,bx-sp*0.25,bx+sp*0.25)<0.5) continue;
+          if(ellFill(st,bx-sp*1.2,cy,rx,ry)>0.5&&ellFill(st,bx+sp*1.2,cy,rx,ry)>0.5) continue;
+          if(hRun(st,bx,cy-sp*0.22)>=2&&hRun(st,bx,cy+sp*0.22)>=2) continue;
+          if(headWidth(st,bx,cy)<0.75||vRun(st,bx,cy)<0.6||barAt(st,bx)) continue;
+        } else if(!hollowWalls(st,bx,cy)||barNear(st,bx,0.8)||(beamRow(st,cy-sp*0.45,bx-sp*1.4,bx+sp*1.4)>0.85&&beamRow(st,cy+sp*0.45,bx-sp*1.4,bx+sp*1.4)>0.85)) continue;
+        found.push({k:{x:bx,s:s2,cy,st,sc,kind},stem:null,dur:f.dur,mate:f});
+      }
+    }
     for(const k of loose){ const sp=k.st.sp;
       const mate=found.find(o=>o.k.kind==='f'&&o.stem&&Math.abs(o.k.x-k.x)<=sp*1.45&&Math.abs(o.k.x-k.x)>=sp*0.8&&Math.abs(o.k.s-k.s)<=1
         &&(o.stem.dir<0?k.cy>=o.stem.tip:k.cy<=o.stem.tip)&&Math.min(Math.abs(o.stem.x-(k.x-sp*0.55)),Math.abs(o.stem.x-(k.x+sp*0.55)))<=sp*0.35);
@@ -1124,8 +1181,8 @@ function scanScore(){
     }
     // scarto ciò che sta sulla punta del gambo di un'altra nota (bandierine, travature)
     for(const f of found){
-      if(f.k.kind==='h'&&found.some(o=>o!==f&&(o.k.kind==='f'||o.k.sc>f.k.sc||(o.stem&&!f.stem))&&Math.abs(o.k.x-f.k.x)<o.k.st.sp*1.6&&Math.abs(o.k.s-f.k.s)<=2
-        &&!(f.stem&&Math.abs(o.k.s-f.k.s)>=2&&(!o.stem||o.stem.dir!==f.stem.dir||Math.abs(o.stem.x-f.stem.x)>o.k.st.sp*0.5)))) continue;
+      if(f.k.kind==='h'&&!f.mate&&found.some(o=>o!==f&&(o.k.kind==='f'||o.k.sc>f.k.sc||(o.stem&&!f.stem))&&Math.abs(o.k.x-f.k.x)<o.k.st.sp*1.6&&Math.abs(o.k.s-f.k.s)<=2
+        &&!(f.stem&&Math.abs(o.k.s-f.k.s)>=2))) continue;   // a una terza o più con il suo gambo: è un'altra nota dell'accordo
       const bad=!f.mate&&found.some(o=>o!==f&&o.stem&&o.k.sc>=f.k.sc-0.05&&(o.k.kind==='f'||f.k.kind==='h')&&Math.abs(f.k.cy-o.stem.tip)<o.k.st.sp*1.6&&f.k.x>o.stem.x-o.k.st.sp*0.5&&f.k.x<o.stem.x+o.k.st.sp*1.5);
       if(f.k.x<noteMinX(c,f.k.st.sp)) continue;   // chiave, armatura e tempo: lì non ci sono note
       if(!bad) notes.push({x:f.k.x,step:f.k.s,ov:null,st:f.k.st,dur:f.dur,chain:ci,side:!!f.mate,kind:f.k.kind});
