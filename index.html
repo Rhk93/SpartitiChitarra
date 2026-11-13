@@ -48,15 +48,20 @@ button:active{transform:scale(.96)}
 #fretSide{display:flex;flex-direction:column;gap:.35rem;flex:0 0 auto}
 #fretSide button{background:var(--soft);color:var(--main);font-size:1.15rem;font-weight:800;width:2.4rem;height:2.4rem;padding:0;border-radius:.6rem;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 #fretWrap{flex:0 1 auto;min-width:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#fretRow{position:relative}
+#rhMini{display:none;position:absolute;right:0;background:#d9a866;border-left:3px solid var(--acc);border-radius:.4rem 0 0 .4rem;box-shadow:-3px 0 8px rgba(0,0,0,.25);pointer-events:none}
 #fret{width:680px;height:auto;display:block;margin:0;touch-action:manipulation}
 #grip{height:16px;margin:-8px -10px 2px;cursor:ns-resize;display:flex;justify-content:center;align-items:center;touch-action:none;user-select:none}
 #grip::before{content:'';width:56px;height:6px;border-radius:3px;background:var(--line)}
 #grip:hover::before{background:var(--acc)}
-#miniBar{display:none;justify-content:flex-end;gap:.3rem;margin:-.2rem 0 .3rem}
+#miniBar{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.3rem;margin:.1rem 0 .35rem}
+#miniMore{display:none;gap:.3rem;flex-wrap:wrap}
+body.onlyNeck #miniMore{display:inline-flex}
+#neckOnly{display:inline-flex;align-items:center;gap:.3rem;font-size:.875rem!important;opacity:1!important}
+body.onlyNeck #neckOnly{background:var(--acc)!important}
 #miniBar button.on{background:var(--acc2)}
 #miniBar button{background:var(--main);color:#fff;font-size:.8rem;padding:.35rem .6rem;opacity:.85;box-shadow:0 1px 4px rgba(0,0,0,.25)}
-body.onlyNeck header,body.onlyNeck #row,body.onlyNeck #playBar,body.onlyNeck #zoneBar,body.onlyNeck #msg{display:none!important}
-body.onlyNeck #miniBar{display:flex}
+body.onlyNeck header,body.onlyNeck #row,body.onlyNeck #playBar,body.onlyNeck #zoneBar,body.onlyNeck #measBar,body.onlyNeck #msg{display:none!important}
 body.onlyNeck #panel{padding-top:.2rem}
 body.noScore #panel{display:none}
 body.noScore .hplay{display:none}
@@ -147,8 +152,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
   <label class="btn" id="addPageBtn" style="display:none" title="Aggiungi altre pagine (PDF o foto) in fondo allo spartito">➕ Pagine<input type="file" id="fileAdd" accept="application/pdf,image/*" multiple></label>
   <span id="pageInfo" style="display:none"></span><button id="pageBtn" style="display:none" title="Vedi le pagine e togli quelle che non ti servono">📑 Pagine</button>
   <span class="grp" title="Dimensione dello spartito"><button id="zout">🔍−</button><button id="zval" title="Tocca per adattare alla larghezza">100%</button><button id="zin">🔍+</button></span>
-  <span class="grp hplay"><button id="hPlay" title="Play / Pausa" class="hp-main">▶</button><button id="hStop" title="Stop">⏹</button>
-    <button id="hSound" title="Strumento"></button></span>
+  <span class="grp hplay"><button id="hPlay" title="Play / Pausa" class="hp-main">▶</button><button id="hStop" title="Stop">⏹</button></span>
   <select id="key" title="Armatura di chiave"></select>
   <button id="setBtn" title="Impostazioni: colori, strumento, nomi delle note">⚙️</button>
 </header>
@@ -170,8 +174,9 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
   <div id="fretRow">
     <div id="fretSide"><button id="fretPlus" title="Tastiera più grande">＋</button><button id="fretMinus" title="Tastiera più piccola">−</button></div>
     <div id="fretWrap"><svg id="fret" viewBox="0 0 1000 236" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <svg id="rhMini" xmlns="http://www.w3.org/2000/svg"><use href="#fretG"/></svg>
   </div>
-  <div id="miniBar"><button id="mPdf" title="Esporta PDF con i nomi">📄</button><button id="mImg" title="Esporta immagine con i nomi">🖼</button><button id="mNames" title="Nomi delle note sotto il pentagramma">🔤</button><button id="mzout" title="Spartito più piccolo">🔍−</button><button id="mzin" title="Spartito più grande">🔍+</button><button id="miniPlay" title="Play / Pausa">▶</button><button id="showAll" title="Mostra pulsanti e scritte">☰ Mostra tutto</button></div>
+  <div id="miniBar"><button id="neckOnly" title="Solo manico: nasconde tutto il resto. Toccalo di nuovo per far riapparire le impostazioni"><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg> <span id="neckTxt">Solo manico</span></button><span id="miniMore"><button id="mPdf" title="Esporta PDF con i nomi">📄</button><button id="mImg" title="Esporta immagine con i nomi">🖼</button><button id="mNames" title="Nomi delle note sotto il pentagramma">🔤</button><button id="mzout" title="Spartito più piccolo">🔍−</button><button id="mzin" title="Spartito più grande">🔍+</button><button id="miniPlay" title="Play / Pausa">▶</button></span></div>
   <div id="row">
     <div id="noteName">—</div>
     <div id="noteInfo">Tocca una nota sullo spartito</div>
@@ -207,7 +212,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
     <button id="measAll" title="Torna a suonare tutto il brano">✕ Tutto il brano</button>
     <span id="measInfo" style="opacity:.8"></span><button id="measClose" title="Chiudi">✓ Chiudi</button></div>
   <div id="zoneBar"><svg class="ic" viewBox="0 0 30 20" width="1.9em" height="1.25em" style="vertical-align:-.3em" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="2" width="28" height="16" rx="1.5" fill="#7a4a1c"/><rect x="9.5" y="2" width="11" height="16" fill="#ffd43b" fill-opacity=".55"/><g stroke="#e9ecef" stroke-width="1.1"><line x1="3" y1="2" x2="3" y2="18"/><line x1="9.5" y1="2" x2="9.5" y2="18"/><line x1="15" y1="2" x2="15" y2="18"/><line x1="20.5" y1="2" x2="20.5" y2="18"/><line x1="26" y1="2" x2="26" y2="18"/></g><g stroke="#f1d9a8" stroke-width=".7"><line x1="1" y1="4.5" x2="29" y2="4.5"/><line x1="1" y1="7" x2="29" y2="7"/><line x1="1" y1="9.5" x2="29" y2="9.5"/><line x1="1" y1="12" x2="29" y2="12"/><line x1="1" y1="14.5" x2="29" y2="14.5"/><line x1="1" y1="17" x2="29" y2="17"/></g><rect x="9.5" y="2" width="11" height="16" fill="none" stroke="#d9480f" stroke-width="1.6"/></svg> Porzione del manico: <button id="zoneBtn" class="chip on" style="padding:.35rem .6rem"></button>
-    <span id="fretTools"><button id="pdfBtn" title="Esporta lo spartito in PDF con i nomi delle note">📄 Esporta PDF</button><button id="imgBtn" title="Esporta lo spartito come immagine con i nomi delle note">🖼 Esporta immagine</button><button id="namesBtn" title="Scrivi il nome di ogni nota sotto il pentagramma">🔤 Nomi note</button><span class="nsz"><button id="nfMinus" title="Nomi più piccoli">A−</button><button id="nfPlus" title="Nomi più grandi">A+</button></span><button id="fretFit" title="Adatta la tastiera allo spazio">Adatta</button><button id="neckOnly" title="Nascondi tutte le scritte e lascia solo il manico"><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg> Solo manico</button></span></div>
+    <span id="fretTools"><button id="pdfBtn" title="Esporta lo spartito in PDF con i nomi delle note">📄 Esporta PDF</button><button id="imgBtn" title="Esporta lo spartito come immagine con i nomi delle note">🖼 Esporta immagine</button><button id="namesBtn" title="Scrivi il nome di ogni nota sotto il pentagramma">🔤 Nomi note</button><span class="nsz"><button id="nfMinus" title="Nomi più piccoli">A−</button><button id="nfPlus" title="Nomi più grandi">A+</button></span><button id="fretFit" title="Adatta la tastiera allo spazio">Adatta</button></span></div>
   <div id="msg"></div>
 </div>
 
@@ -265,6 +270,8 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
   <div class="chips"><button class="chip" data-style="flat">Normale (tinta unita)</button><button class="chip" data-style="grad">Sfumato</button></div>
   <h4><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg> Strumento (suono della riproduzione)</h4>
   <div class="chips" id="soundChips"></div>
+  <h4>✋ Mani sul manico (dita che premono e pizzicano)</h4>
+  <div class="chips"><button class="chip" id="handsOn">Mostra le mani</button><button class="chip" id="handsOff">Nascondi</button></div>
   <h4>🔉 Indicazioni di volume e tempo (p, mf, f, cresc., dim., rall.)</h4>
   <div class="chips"><button class="chip" id="dynOn">Seguile nella riproduzione</button><button class="chip" id="dynOff">Ignorale</button></div>
   <h4>🔤 Nomi delle note sotto il pentagramma</h4>
@@ -326,7 +333,7 @@ const ZONES=[
   {id:'p9',n:'Tasti 9–12',from:9,to:12},
   {id:'custom',n:'Scelgo io…'}
 ];
-const DEF={main:'#6b3f1f',acc:'#d9480f',bg:'#f6f1e7',style:'flat',font:0,fs:1,zone:'all',zFrom:0,zTo:3,ask:true,bpm:80,dyn:true,rhythm:'scritto',loop:false,showOv:false,sound:'classica',meter:'auto',showNames:false,nameStyle:'it',nameFs:1};
+const DEF={main:'#6b3f1f',acc:'#d9480f',bg:'#f6f1e7',style:'flat',font:0,fs:1,zone:'all',zFrom:0,zTo:3,ask:true,bpm:80,dyn:true,rhythm:'scritto',loop:false,showOv:false,sound:'classica',meter:'auto',showNames:false,nameStyle:'it',nameFs:1,hands:true};
 let S=Object.assign({},DEF);
 try{const s=JSON.parse(localStorage.getItem('spartitoChitarra')||'null');if(s)S=Object.assign(S,s);}catch(e){}
 function save(){try{localStorage.setItem('spartitoChitarra',JSON.stringify(S));}catch(e){}}
@@ -1521,9 +1528,8 @@ $('stopBtn').onclick=()=>stop();
 function setPlayUI(){const t=playing?'⏸':'▶';$('playBtn').textContent=t;$('miniPlay').textContent=t;$('hPlay').textContent=t;}
 $('miniPlay').onclick=$('hPlay').onclick=()=>playing?pause():play();
 $('hStop').onclick=()=>stop();
-function setOnlyNeck(v){S.onlyNeck=v;save();document.body.classList.toggle('onlyNeck',v);applyPanelH();layout();}
-$('neckOnly').onclick=()=>setOnlyNeck(true);
-$('showAll').onclick=()=>setOnlyNeck(false);
+function setOnlyNeck(v){S.onlyNeck=v;save();document.body.classList.toggle('onlyNeck',v);$('neckOnly').classList.toggle('on',v);$('neckTxt').textContent=v?'Solo manico ✓ (tocca per le impostazioni)':'Solo manico';applyPanelH();layout();}
+$('neckOnly').onclick=()=>setOnlyNeck(!S.onlyNeck);
 function play(){
   if(!loaded){toast('Prima apri uno spartito');return;}
   if(!scanned) scanScore(); else buildSeq();
@@ -1553,7 +1559,7 @@ async function tick(){
     cur={st:top.st,step:top.step,x:top.x,ov:top.ov,pos:null,idx:notes.indexOf(top)}; restIdx=null;
     update(false);
     if(g.length>1) $('msg').textContent='Più note insieme, sigla dell\'accordo non letta: suono la nota più alta.';
-    pluck(pitch(top.step,top.ov).sound,0.45*(g.vol||1));
+    pluck(pitch(top.step,top.ov).sound,0.45*(g.vol||1)); handsPluck(cur.pos);
   }
   $('marker').scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
   const beats=S.rhythm==='uguali'?1:(g.beats||Math.min(...g.map(n=>n.dur)));
@@ -1983,7 +1989,7 @@ function update(play){
   $('msg').textContent=outside?'⚠️ Questa nota non si trova nella porzione scelta: ti mostro la posizione più vicina.'
     :(grp&&grp.sym?'Fa parte dell\'accordo '+grp.sym.text+': tocca il pulsante della chitarra per vederlo.':(pos.length>1?'Tocca un altro pallino sulla tastiera per vedere le altre posizioni della stessa nota.':''));
   drawFret(pos,sel,name);
-  if(play) pluck(p.sound);
+  if(play){ pluck(p.sound); handsPluck(q); }
 }
 $('up').onclick=()=>{if(cur){cur.step++;cur.ov=null;cur.pos=null;syncCur();update(true);}};
 $('down').onclick=()=>{if(cur){cur.step--;cur.ov=null;cur.pos=null;syncCur();update(true);}};
@@ -1992,15 +1998,28 @@ function setOv(v){if(!cur)return;cur.ov=cur.ov===v?null:v;cur.pos=null;syncCur()
 $('snd').onclick=()=>{if(cur){const p=pitch(cur.step,cur.ov);pluck(p.sound);}};
 
 /* ---------- tastiera ---------- */
-const NUT=84, END=985, TOPY=26, GAP=34;
+let NUT=84, END=985, TOPY=26, GAP=34, VBW=1000, VBH=236, BRIDGE=1170, RHX=1010;
+function setGeo(){ const hd=S.hands!==false;
+  if(hd){END=780;TOPY=122;VBW=1200;VBH=332;} else {END=985;TOPY=26;VBW=1000;VBH=236;}
+  const sv=$('fret'); if(sv) sv.setAttribute('viewBox','0 0 '+VBW+' '+VBH); }
 const fx=f=>NUT+(END-NUT)*(1-Math.pow(2,-f/12))/(1-Math.pow(2,-NFRETS/12));
 const sy=s=>TOPY+s*GAP;
+function redrawFret(){ if(cur) update(false); else if(chordShown) showChord(chordShown); else drawFret([],-1); }
 function drawFret(pos,sel,name,shape){
+  setGeo(); const HD=S.hands!==false;
   const A=S.acc, k=Math.min(1.3,S.fs), z=zone(), whole=z.from===0&&z.to>=NFRETS;
   let h='<defs><linearGradient id="wd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a4a26"/><stop offset="1" stop-color="#5a3518"/></linearGradient>'+
     '<linearGradient id="dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+mix(A,'#ffffff',.25)+'"/><stop offset="1" stop-color="'+mix(A,'#000000',.3)+'"/></linearGradient></defs>';
   const fill=S.style==='grad'?'url(#dg)':A;
-  h+='<rect x="'+NUT+'" y="'+(TOPY-14)+'" width="'+(END-NUT)+'" height="'+(GAP*5+28)+'" rx="4" fill="url(#wd)"/>';
+  if(HD){ // cassa della chitarra con la buca: qui pizzica la mano destra
+    const yb=TOPY+GAP*5;
+    h+='<defs><linearGradient id="tp" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e7c08a"/><stop offset="1" stop-color="#d9a866"/></linearGradient>'+
+      '<filter id="hsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="2" dy="3" stdDeviation="2.5" flood-opacity=".35"/></filter></defs>';
+    h+='<path d="M'+(END+30)+' '+(TOPY-60)+' Q'+(END+50)+' '+(TOPY-88)+' '+(END+170)+' '+(TOPY-88)+' L'+VBW+' '+(TOPY-88)+' L'+VBW+' '+(yb+88)+' L'+(END+170)+' '+(yb+88)+' Q'+(END+50)+' '+(yb+88)+' '+(END+30)+' '+(yb+60)+'Z" fill="url(#tp)"/>';
+    h+='<circle cx="'+(END+125)+'" cy="'+(TOPY+GAP*2.5)+'" r="80" fill="none" stroke="#7a4a26" stroke-width="5"/><circle cx="'+(END+125)+'" cy="'+(TOPY+GAP*2.5)+'" r="68" fill="#2a170a"/>';
+    h+='<rect x="'+(BRIDGE-10)+'" y="'+(TOPY-22)+'" width="20" height="'+(GAP*5+44)+'" rx="4" fill="#3b220e"/>';
+  }
+  h+='<rect x="'+NUT+'" y="'+(TOPY-14)+'" width="'+(END-NUT+(HD?24:0))+'" height="'+(GAP*5+28)+'" rx="4" fill="url(#wd)"/>';
   // porzione del manico
   if(!whole){
     const x1=z.from<=1?NUT-44:fx(z.from-1), x2=fx(z.to);
@@ -2015,17 +2034,24 @@ function drawFret(pos,sel,name,shape){
     h+='<text x="'+((fx(f-1)+fx(f))/2)+'" y="'+(TOPY+GAP*5+38)+'" font-size="'+(18*k)+'" text-anchor="middle" fill="'+(inz?A:'#8a7660')+'" font-weight="'+(inz?800:400)+'">'+f+'</text>';}
   for(let s=0;s<6;s++){
     const w=1.2+s*0.55;
-    h+='<line x1="'+(NUT-36)+'" y1="'+sy(s)+'" x2="'+END+'" y2="'+sy(s)+'" stroke="'+(s<2?'#e8e8e8':'#d4b26a')+'" stroke-width="'+w+'"/>';
+    h+='<line x1="'+(NUT-36)+'" y1="'+sy(s)+'" x2="'+(HD?BRIDGE:END)+'" y2="'+sy(s)+'" stroke="'+(s<2?'#e8e8e8':'#d4b26a')+'" stroke-width="'+w+'"/>';
     h+='<text x="4" y="'+(sy(s)+5)+'" font-size="'+(16*Math.min(1.15,k))+'" fill="#5a3518" font-weight="700">'+(s+1)+' '+OPEN_NAME[s]+'</text>';
   }
+  let hSel='';
+  if(HD) h+='<path id="vib" fill="none" stroke-linecap="round"/>';
   pos.forEach((q,i)=>{
     const cx=q.f===0?NUT-22:(fx(q.f-1)+fx(q.f))/2, cy=sy(q.s), on=i===sel, dim=!whole&&!q.inz&&!on;
+    if(on&&HD&&q.f>0){ // il pallino della nota sta sopra il polpastrello
+      hSel='<g class="pos" data-i="'+i+'"><circle cx="'+cx+'" cy="'+cy+'" r="15" fill="'+fill+'" stroke="#fff" stroke-width="3" opacity=".93"/>'+(name?'<text x="'+cx+'" y="'+(cy+5)+'" font-size="'+((name.length>3?11:14)*Math.min(1.1,k))+'" text-anchor="middle" fill="#fff" font-weight="800">'+name+'</text>':'')+'<circle cx="'+cx+'" cy="'+cy+'" r="24" fill="transparent"/></g>';
+      return; }
     h+='<g class="pos" data-i="'+i+'" opacity="'+(dim?.4:1)+'">';
     if(on) h+='<circle cx="'+cx+'" cy="'+cy+'" r="22" fill="'+A+'" opacity=".3"/>';
     h+='<circle cx="'+cx+'" cy="'+cy+'" r="'+(on?17:13)+'" fill="'+(on?fill:'#fff')+'" stroke="'+(on?'#fff':A)+'" stroke-width="3"/>';
     if(on&&name) h+='<text x="'+cx+'" y="'+(cy+5)+'" font-size="'+((name.length>3?12:15)*Math.min(1.1,k))+'" text-anchor="middle" fill="#fff" font-weight="800">'+name+'</text>';
     h+='<circle cx="'+cx+'" cy="'+cy+'" r="24" fill="transparent"/></g>';
   });
+  if(HD){ h+='<g id="hands"></g>'+hSel;
+    const q=sel>=0?pos[sel]:null; handsTarget(q&&!shape?q:null); }
   if(shape){
     shape.forEach((f,s)=>{ const cy=sy(s);
       if(f<0){h+='<text x="'+(NUT-22)+'" y="'+(cy+7)+'" font-size="22" text-anchor="middle" fill="#c92a2a" font-weight="800">✕</text>';return;}
@@ -2034,15 +2060,68 @@ function drawFret(pos,sel,name,shape){
       h+='<text x="'+cx+'" y="'+(cy+5)+'" font-size="'+(nm.length>3?11:13)*Math.min(1.1,k)+'" text-anchor="middle" fill="'+(f===0?A:'#fff')+'" font-weight="800">'+nm+'</text>';
     });
   }
-  const svg=$('fret'); svg.innerHTML=h; if(S.fretFit) requestAnimationFrame(fretLayout);
+  const svg=$('fret'); svg.innerHTML='<g id="fretG">'+h+'</g>'; if(S.fretFit) requestAnimationFrame(fretLayout);
+  if(HD) handsRun();
+  requestAnimationFrame(miniHand);
   const fw=$('fretWrap');
   let target=null;
   if(sel>=0){const q=pos[sel];target=q.f===0?0:(fx(q.f-1)+fx(q.f))/2;}
   else if(shape){const fr=shape.filter(f=>f>0);target=fr.length?(fx(Math.min(...fr)-1)+fx(Math.max(...fr)))/2:0;}
   else if(!whole) target=(fx(Math.max(0,z.from-1))+fx(z.to))/2;
-  if(target!=null){const px=target/1000*svg.getBoundingClientRect().width;fw.scrollTo({left:Math.max(0,px-fw.clientWidth/2),behavior:'smooth'});}
+  if(target!=null){const px=target/VBW*svg.getBoundingClientRect().width;const mw=$('rhMini')&&$('rhMini').style.display==='block'?$('rhMini').getBoundingClientRect().width:0;fw.scrollTo({left:Math.max(0,px-(fw.clientWidth-mw)/2),behavior:'smooth'});}
   svg.querySelectorAll('.pos').forEach(g=>g.addEventListener('click',()=>{cur.pos=pos[+g.dataset.i];update(true);}));
 }
+/* ---------- mani sul manico ---------- */
+// sinistra: posizioni fisse 1-4 (I), 5-8 (V), 9-12 (IX): dito 1 sul primo tasto del gruppo
+// destra: indice (i) e medio (m) alternati
+const HS={pos:1,act:-1,str:0,lx:[0,0,0,0],ly:[0,0,0,0],ty:[0,0,0,0],r:[{y:0},{y:0}],rAct:-1,rNext:0,rT0:-1e9,rStr:0,vib:null,raf:0,init:false};
+const SKIN='#f2c9a5', SKIN_D='#c98d66', NAIL='#fbe3d6';
+function handsTarget(q){
+  const lift=TOPY-32;
+  if(q&&q.f>0){ HS.pos=Math.floor((q.f-1)/4)*4+1; HS.act=q.f-HS.pos; HS.str=q.s; } else HS.act=-1;
+  for(let i=0;i<4;i++) HS.ty[i]=i===HS.act?sy(HS.str)+4:lift;
+  if(!HS.init){ HS.init=true; for(let i=0;i<4;i++){HS.ly[i]=HS.ty[i];} HS.r.forEach(f=>f.y=lift-8); }
+}
+function handsPluck(q){ if(S.hands===false||!q) return;
+  HS.rAct=HS.rNext; HS.rNext=1-HS.rNext; HS.rT0=performance.now(); HS.rStr=q.s;
+  HS.vib={s:q.s,x0:q.f>0?fx(q.f):NUT,t0:performance.now()}; handsRun(); }
+function fingerSvg(x,tipY,w,label,active,lead){
+  const r=w/2, y0=4, len=tipY-y0;
+  let h='<g opacity="'+(active?1:.55)+'" filter="url(#hsh)"><path d="M'+(x-r)+' '+y0+' L'+(x-r)+' '+(tipY-r)+' A'+r+' '+r+' 0 0 0 '+(x+r)+' '+(tipY-r)+' L'+(x+r)+' '+y0+'Z" fill="'+SKIN+'" stroke="'+SKIN_D+'" stroke-width="2"/>';
+  for(const k of [.42,.72]){const yy=tipY-len*k; if(yy>y0+30) h+='<path d="M'+(x-w*.32)+' '+yy+' q'+(w*.32)+' 4 '+(w*.64)+' 0" fill="none" stroke="'+SKIN_D+'" stroke-width="1.6" opacity=".7"/>';}
+  h+=lead==='nail'?'<ellipse cx="'+x+'" cy="'+(tipY-w*.55)+'" rx="'+(w*.3)+'" ry="'+(w*.38)+'" fill="'+NAIL+'" stroke="'+SKIN_D+'" stroke-width="1"/>'
+                  :'<ellipse cx="'+x+'" cy="'+(tipY-w*.35)+'" rx="'+(w*.36)+'" ry="'+(w*.3)+'" fill="#e8a989" opacity=".6"/>';
+  h+='</g><circle cx="'+x+'" cy="24" r="13" fill="'+(active?S.acc:'#fff')+'" stroke="'+S.acc+'" stroke-width="2"/><text x="'+x+'" y="29.5" font-size="15" font-weight="800" text-anchor="middle" fill="'+(active?'#fff':S.acc)+'">'+label+'</text>';
+  return h;
+}
+function handsFrame(now){
+  HS.raf=0; const g=$('hands'); if(!g||S.hands===false) return;
+  let moving=false; const lift=TOPY-32;
+  for(let i=0;i<4;i++){ const f=HS.pos+i, tx=(fx(f-1)+fx(f))/2;
+    if(!HS.lx[i]) HS.lx[i]=tx;
+    const dx=tx-HS.lx[i], dy=HS.ty[i]-HS.ly[i];
+    HS.lx[i]+=dx*.28; HS.ly[i]+=dy*.32; if(Math.abs(dx)>.5||Math.abs(dy)>.5) moving=true; else {HS.lx[i]=tx;HS.ly[i]=HS.ty[i];} }
+  const dt=now-HS.rT0, sY=sy(HS.rStr);
+  HS.r.forEach((F,k)=>{ let ty=lift-8, sp=.18;
+    if(k===HS.rAct&&dt<260){ ty=dt<70?sY+4:sY-GAP*.75; sp=.55; moving=true; }
+    F.y+=(ty-F.y)*sp; if(Math.abs(ty-F.y)>.5) moving=true; else F.y=ty; });
+  let h='';
+  const ord=[0,1,2,3].sort((a,b)=>(a===HS.act)-(b===HS.act));
+  for(const i of ord) h+=fingerSvg(HS.lx[i],HS.ly[i],i===HS.act?28:24,i+1,i===HS.act,'pad');
+  const rx=[RHX-24,RHX+24], rOrd=[0,1].sort((a,b)=>(a===HS.rAct)-(b===HS.rAct));
+  for(const k of rOrd) h+=fingerSvg(rx[k],HS.r[k].y,26,k?'m':'i',k===HS.rAct&&dt<700,'nail');
+  g.innerHTML=h;
+  const v=$('vib');
+  if(v&&HS.vib){ const vt=(now-HS.vib.t0)/1000;
+    if(vt<1.6){ moving=true; const A=6*Math.exp(-vt*2.6), x0=HS.vib.x0, x1=BRIDGE, y=sy(HS.vib.s), ph=Math.sin(vt*90);
+      let d='M'+x0+' '+y; for(let i=1;i<=24;i++){const x=x0+(x1-x0)*i/24; d+=' L'+x.toFixed(1)+' '+(y+A*ph*Math.sin(Math.PI*i/24)).toFixed(1);}
+      v.setAttribute('d',d); v.setAttribute('stroke',S.acc); v.setAttribute('stroke-width',2+HS.vib.s*.55); v.setAttribute('opacity',Math.min(1,.4+A/6)); }
+    else { HS.vib=null; v.setAttribute('d',''); } }
+  if(moving||dt<700) handsRun();
+}
+$('fretWrap').addEventListener('scroll',()=>miniHand(),{passive:true});
+window.addEventListener('resize',()=>miniHand());
+function handsRun(){ if(!HS.raf) HS.raf=requestAnimationFrame(handsFrame); }
 function showEmptyPanel(){restIdx=null;['delBtn','addBtn','durSel','chordBtn'].forEach(id=>$(id).style.display='none');$('noteName').textContent='—';$('noteInfo').textContent='Tocca una nota sullo spartito';$('msg').textContent='';drawFret([],-1);}
 
 /* ---------- suoni ---------- */
@@ -2100,18 +2179,30 @@ function pluck(midi,vol=0.45){
 
 /* ---------- dimensioni della tastiera e del pannello ---------- */
 if(S.fretFit==null) S.fretFit=window.innerWidth>900;
+// telefono in verticale: se il manico non entra tutto, la mano destra resta visibile in una finestrella a destra
+function miniHand(){
+  const m=$('rhMini'), fw=$('fretWrap'), sv=$('fret');
+  if(!m) return;
+  const over=S.hands!==false && sv.getBoundingClientRect().width>fw.clientWidth+4 && fw.scrollLeft+fw.clientWidth<fw.scrollWidth-40;
+  if(!over){ m.style.display='none'; return; }
+  const hgt=sv.getBoundingClientRect().height, W=150;
+  m.setAttribute('viewBox',(RHX-W/2)+' 0 '+W+' '+VBH);
+  m.style.height=hgt+'px'; m.style.width=(W/VBH*hgt)+'px';
+  m.style.top=fw.offsetTop+'px'; m.style.display='block';
+}
 function fretLayout(){
   const fw=$('fretWrap'), svg=$('fret'), cw=Math.max(200,($('fretRow').clientWidth||360)-$('fretSide').offsetWidth-8);
   let w;
   if(S.fretFit){
     const ph=S.panelH?S.panelH*window.innerHeight:window.innerHeight*(S.onlyNeck?0.45:0.52);
-    let other=0; for(const id of ['grip','row','playBar','zoneBar','msg']){const e=$(id); if(e.offsetParent) other+=e.offsetHeight+8;}
+    let other=0; for(const id of ['grip','miniBar','row','playBar','zoneBar','msg']){const e=$(id); if(e.offsetParent) other+=e.offsetHeight+8;}
     const avail=ph-other-20;
-    w=Math.min(cw,avail*1000/236);
+    w=Math.min(cw,avail*VBW/VBH);
     w=Math.max(Math.min(cw,360),w);
   }else w=S.fretPx||Math.min(Math.max(cw,680),1000);
   svg.style.width=Math.round(w)+'px';
   $('fretFit').classList.toggle('on',!!S.fretFit);
+  miniHand();
 }
 function setFretPx(f){const cur=$('fret').getBoundingClientRect().width||680;S.fretFit=false;S.fretPx=Math.max(300,Math.min(2600,Math.round(cur*f)));save();fretLayout();}
 $('fretMinus').onclick=()=>setFretPx(1/1.15);
@@ -2288,13 +2379,13 @@ SOUNDS.forEach(x=>{
   for(const box of ['soundChips','sndChips2']){const b=document.createElement('button');b.className='chip';b.dataset.sound=x.id;b.innerHTML=x.ic+' '+x.n;
     b.onclick=()=>{setSound(x.id); if(box==='sndChips2') $('sndModal').classList.remove('open');}; $(box).appendChild(b);}
 });
-function soundLabel(){const x=SOUNDS.find(q=>q.id===S.sound)||SOUNDS[0]; $('hSound').innerHTML=x.ic+' '+x.n.replace(/ \(.*\)/,''); $('soundBtn').innerHTML=x.ic+' '+x.n.replace(/ \(.*\)/,'')+' ▾';}
+function soundLabel(){const x=SOUNDS.find(q=>q.id===S.sound)||SOUNDS[0]; $('soundBtn').innerHTML=x.ic+' '+x.n.replace(/ \(.*\)/,'')+' ▾';}
 function setSound(id){
   S.sound=id;save(); soundLabel();
   document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===id));
   if(!playing){ if(cur) pluck(pitch(cur.step,cur.ov).sound); else pluck(57); }
 }
-$('hSound').onclick=$('soundBtn').onclick=()=>$('sndModal').classList.add('open');
+$('soundBtn').onclick=()=>$('sndModal').classList.add('open');
 $('sndClose').onclick=()=>$('sndModal').classList.remove('open');
 $('sndModal').onclick=e=>{if(e.target.id==='sndModal')$('sndModal').classList.remove('open');};
 $('namesOn').onclick=()=>setNames(true);
@@ -2302,9 +2393,11 @@ $('namesOn').onclick=()=>setNames(true);
 ['imgBtn','imgBtn2','mImg'].forEach(id=>$(id).onclick=exportImg);
 $('nfMinus').onclick=()=>setNameFs((S.nameFs||1)-0.1); $('nfPlus').onclick=()=>setNameFs((S.nameFs||1)+0.1);
 $('namesOff').onclick=()=>setNames(false);
+function setHands(v){S.hands=v;save();$('handsOn').classList.toggle('on',v);$('handsOff').classList.toggle('on',!v);redrawFret();layout();}
+$('handsOn').onclick=()=>setHands(true); $('handsOff').onclick=()=>setHands(false); $('handsOn').classList.toggle('on',S.hands!==false); $('handsOff').classList.toggle('on',S.hands===false);
 function setDyn(v){S.dyn=v;save();$('dynOn').classList.toggle('on',v);$('dynOff').classList.toggle('on',!v);if(loaded&&scanned)buildSeq();}
 $('dynOn').onclick=()=>setDyn(true); $('dynOff').onclick=()=>setDyn(false); $('dynOn').classList.toggle('on',S.dyn!==false); $('dynOff').classList.toggle('on',S.dyn===false);
-applyPanelH(); applyLook(); refreshZoneUI(); setBpm(S.bpm); document.body.classList.toggle('onlyNeck',!!S.onlyNeck); layout(); $('rhythm').value=S.rhythm; soundLabel(); document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===S.sound)); $('meterSel').value=S.meter||'auto'; $('namesBtn').onclick=()=>setNames(!S.showNames); $('mNames').onclick=()=>setNames(!S.showNames); ['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',!!S.showNames)); $('namesOn').classList.toggle('on',!!S.showNames); $('namesOff').classList.toggle('on',!S.showNames); $('loopBtn').classList.toggle('on',S.loop); $('ovBtn').classList.toggle('on',S.showOv);
+applyPanelH(); applyLook(); refreshZoneUI(); setBpm(S.bpm); setOnlyNeck(!!S.onlyNeck); $('rhythm').value=S.rhythm; soundLabel(); document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===S.sound)); $('meterSel').value=S.meter||'auto'; $('namesBtn').onclick=()=>setNames(!S.showNames); $('mNames').onclick=()=>setNames(!S.showNames); ['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',!!S.showNames)); $('namesOn').classList.toggle('on',!!S.showNames); $('namesOff').classList.toggle('on',!S.showNames); $('loopBtn').classList.toggle('on',S.loop); $('ovBtn').classList.toggle('on',S.showOv);
 </script>
 </body>
 </html>
