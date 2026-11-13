@@ -278,7 +278,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
   <div class="chips"><button class="chip" id="namesOn">Mostra i nomi</button><button class="chip" id="namesOff">Nascondi i nomi</button></div>
   <div class="chips" style="margin-top:.4rem"><button class="chip" data-names="it">Do Re Mi</button><button class="chip" data-names="en">C D E</button></div>
   <h4>🎸 Accordi con la sigla scritta (Am, Re7…)</h4>
-  <div class="chips"><button class="chip" id="chOnlyOn">Scrivi solo il nome dell'accordo</button><button class="chip" id="chOnlyOff">Scrivi tutte le note</button></div>
+  <div class="chips"><button class="chip" data-chm="name">Solo il nome dell'accordo</button><button class="chip" data-chm="notes">Tutte le note</button><button class="chip" data-chm="none">Non scrivere niente</button></div>
   <h4>Grandezza dei nomi sullo spartito: <span id="nfVal"></span></h4>
   <input type="range" id="nfRange" min="0.6" max="2.2" step="0.1">
   <div class="chips" style="margin-top:.4rem"><button class="chip" id="pdfBtn2">📄 Esporta in PDF con i nomi</button><button class="chip" id="imgBtn2">🖼 Esporta come immagine</button></div>
@@ -1516,7 +1516,9 @@ function nameItems(){
     const x=ns.reduce((a,n)=>a+n.x,0)/ns.length, st=c?staffAt(c,x):ns[0].st, sp=st.sp, fs=sp*1.25*(S.nameFs||1);
     const y0=st.bottom+(off[ci]||(1.45+1.25*Math.max(1,S.nameFs||1))*sp);
     // accordo con la sigla scritta: solo il nome dell'accordo (le note le uso lo stesso per suonare e per il manico)
-    if(g.length>1&&g.sym&&g.sym.text&&S.chordOnly!==false){ out.push({x,y:y0,fs,sp,t:g.sym.text,chord:true}); return; }
+    if(g.length>1&&g.sym&&g.sym.text){ const m=chordMode();
+      if(m==='none') return;                                   // accordo: sotto non scrivo niente
+      if(m==='name'){ out.push({x,y:y0,fs,sp,t:g.sym.text,chord:true}); return; } }
     ns.forEach((n,k)=>out.push({x,y:y0+k*fs*1.1,fs,sp,t:noteLabel(n)}));
   });
   return out;
@@ -2606,8 +2608,9 @@ $('nfMinus').onclick=()=>setNameFs((S.nameFs||1)-0.1); $('nfPlus').onclick=()=>s
 $('namesOff').onclick=()=>setNames(false);
 function setHands(v){S.hands=v;save();$('handsOn').classList.toggle('on',v);$('handsOff').classList.toggle('on',!v);redrawFret();layout();}
 $('handsOn').onclick=()=>setHands(true); $('handsOff').onclick=()=>setHands(false); $('handsOn').classList.toggle('on',S.hands!==false); $('handsOff').classList.toggle('on',S.hands===false);
-function setChordOnly(v){S.chordOnly=v;save();$('chOnlyOn').classList.toggle('on',v);$('chOnlyOff').classList.toggle('on',!v);drawOverlay();}
-$('chOnlyOn').onclick=()=>setChordOnly(true); $('chOnlyOff').onclick=()=>setChordOnly(false); $('chOnlyOn').classList.toggle('on',S.chordOnly!==false); $('chOnlyOff').classList.toggle('on',S.chordOnly===false);
+function chordMode(){ return S.chordNames||(S.chordOnly===false?'notes':'name'); }
+function setChordMode(m){S.chordNames=m;save();document.querySelectorAll('[data-chm]').forEach(b=>b.classList.toggle('on',b.dataset.chm===m));drawOverlay();}
+document.querySelectorAll('[data-chm]').forEach(b=>{b.onclick=()=>setChordMode(b.dataset.chm); b.classList.toggle('on',b.dataset.chm===chordMode());});
 function setDyn(v){S.dyn=v;save();$('dynOn').classList.toggle('on',v);$('dynOff').classList.toggle('on',!v);if(loaded&&scanned)buildSeq();}
 $('dynOn').onclick=()=>setDyn(true); $('dynOff').onclick=()=>setDyn(false); $('dynOn').classList.toggle('on',S.dyn!==false); $('dynOff').classList.toggle('on',S.dyn===false);
 applyPanelH(); applyLook(); refreshZoneUI(); setBpm(S.bpm); setOnlyNeck(!!S.onlyNeck); $('rhythm').value=S.rhythm; soundLabel(); document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===S.sound)); $('meterSel').value=S.meter||'auto'; $('namesBtn').onclick=()=>setNames(!S.showNames); $('mNames').onclick=()=>setNames(!S.showNames); ['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',!!S.showNames)); $('namesOn').classList.toggle('on',!!S.showNames); $('namesOff').classList.toggle('on',!S.showNames); $('loopBtn').classList.toggle('on',S.loop); $('ovBtn').classList.toggle('on',S.showOv);
