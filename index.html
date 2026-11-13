@@ -700,6 +700,16 @@ function findStem(st,cx,cy){
   return best;
 }
 function stemOk(st,stem){ return !!stem&&(stem.len>=st.sp*2.8||(stem.len>=st.sp*1.7&&hasBeamFlag(st,stem))); }
+// quante travature (o bandierine) ci sono in punta al gambo: 1 = croma, 2 = semicroma, 3 = biscroma
+function beamCount(st,stem){ const sp=st.sp; let best=1;
+  for(const side of [-1,1]) for(const off of [0.35,0.6]){
+    const x=Math.round(stem.x+side*sp*off); if(x<0||x>=W) continue;
+    let runs=0, cur=0; const len=Math.round(sp*2.4), minT=Math.max(2,sp*0.22);
+    for(let k=-Math.round(sp*0.3);k<=len;k++){ const y=stem.tip-stem.dir*k; if(y<0||y>=H) break;
+      if(dark[y*W+x]&&!isLineRow(st,y)) cur++; else if(isLineRow(st,y)&&cur>0) cur++; else { if(cur>=minT) runs++; cur=0; } }
+    if(cur>=minT) runs++;
+    best=Math.max(best,Math.min(3,runs)); }
+  return best; }
 function hasBeamFlag(st,stem){
   const sp=st.sp, a=stem.dir<0?stem.tip-Math.round(sp*0.1):stem.tip-Math.round(sp*1.3), b=stem.dir<0?stem.tip+Math.round(sp*1.3):stem.tip+Math.round(sp*0.1);
   let best=0;
@@ -761,6 +771,15 @@ function hollowWalls(st,x,cy){ const sp=st.sp; let L=false,R=false;
   for(const f of [-0.12,0,0.12]){ const y=Math.round(cy+f*sp); if(y<0||y>=H||isLineRow(st,y)) continue;
     if(segDark(y,x-sp*0.8,x-sp*0.3)>0) L=true; if(segDark(y,x+sp*0.3,x+sp*0.8)>0) R=true; }
   return L&&R; }
+// travatura che passa vicinissima (barra nera spessa e lunga): lì non c'è una testa, ma un pezzo di travatura
+function beamNear(st,x,cy){ const sp=st.sp; let run=0,best=0;
+  for(let y=Math.round(cy-sp*0.9);y<=Math.round(cy+sp*0.9);y++){
+    if(y<0||y>=H){run=0;continue;}
+    // vicino alle righe del pentagramma non guardo (le righe sono lunghe ma sottili)
+    const k=Math.round((y-st.top)/sp); if(k>=0&&k<=4&&Math.abs(y-(st.top+k*sp))<=st.t/2+sp*0.16) continue;
+    // la travatura prosegue almeno da un lato per più di uno spazio e mezzo (un taglio addizionale no: è corto)
+    if(Math.max(segDark(y,x-sp*1.6,x),segDark(y,x,x+sp*1.6))>=0.9){run++;best=Math.max(best,run);} else run=0; }
+  return best>=sp*0.3; }
 function barNear(st,x,r){ for(let d=-r*st.sp;d<=r*st.sp;d+=1) if(barAt(st,x+d)) return true; return false; }
 function rowDark(st,y,x0,x1){
   y=Math.round(y); if(y<0||y>=H||isLineRow(st,y)) return 1;
@@ -768,6 +787,13 @@ function rowDark(st,y,x0,x1){
 }
 /* note fuori dal pentagramma: devono avere i loro tagli addizionali (così scritte, diteggiature, accordi e testi vengono ignorati) */
 function segDark(y,x0,x1){let c=0,t=0;for(let x=Math.round(x0);x<=Math.round(x1);x++){if(x<0||x>=W)continue;c+=dark[y*W+x];t++;}return t?c/t:0;}
+function ledgersThin(st,cx,s){ const sp=st.sp, need=[];
+  for(let e=-2;e>s;e-=2) need.push(e); for(let e=10;e<s;e+=2) need.push(e);
+  for(const e of need){ const ly=Math.round(st.bottom-e*sp/2); let ok=false;
+    for(let y=ly-Math.round(st.t/2+2);y<=ly+Math.round(st.t/2+2)&&!ok;y++){ if(y<0||y>=H) continue;
+      if(segDark(y,cx-sp*0.9,cx+sp*0.9)>=0.75&&segDark(Math.round(y-sp*0.35),cx-sp*0.9,cx+sp*0.9)<0.5&&segDark(Math.round(y+sp*0.35),cx-sp*0.9,cx+sp*0.9)<0.5) ok=true; }
+    if(!ok) return false; }
+  return true; }
 function ledgersOk(st,cx,s){
   const sp=st.sp, need=[];
   for(let e=-2;e>=s;e-=2) need.push(e);
@@ -1114,10 +1140,11 @@ function scanScore(){
           if(ellFill(st,x-sp*1.2,cy,rx*0.8,ry*0.8)>0.5&&ellFill(st,x+sp*1.2,cy,rx*0.8,ry*0.8)>0.5) continue;   // travatura
           if(hRun(st,x,cy-sp*0.22)>=2&&hRun(st,x,cy+sp*0.22)>=2) continue;   // travatura (anche all'inizio o alla fine)
           if(headWidth(st,x,cy)<0.75||vRun(st,x,cy)<0.6||barAt(st,x)) continue;           // non è un pallino (stanghetta, incrocio, puntino, pausa)
+          if(beamNear(st,x,cy)) continue;                                                   // pezzo di travatura
           cands.push({x,s,cy,st,sc:f,kind:'f'});
         }else if(f<0.6){
           const r=ringInfo(st,x,cy,sp*0.6,sp*0.42);
-          if(((r.f>=0.55&&r.sec>=8)||(r.f>=0.7&&r.sec>=7))&&ellFill(st,x,cy,rx*0.35,ry*0.35)<=0.3&&!barNear(st,x,0.8)&&!(beamRow(st,cy-sp*0.45,x-sp*1.4,x+sp*1.4)>0.85&&beamRow(st,cy+sp*0.45,x-sp*1.4,x+sp*1.4)>0.85)) cands.push({x,s,cy,st,sc:r.f,kind:'h'});
+          if(((r.f>=0.55&&r.sec>=8)||(r.f>=0.7&&r.sec>=7))&&ellFill(st,x,cy,rx*0.35,ry*0.35)<=0.3&&!barNear(st,x,0.8)&&!beamNear(st,x,cy)&&!(beamRow(st,cy-sp*0.45,x-sp*1.4,x+sp*1.4)>0.85&&beamRow(st,cy+sp*0.45,x-sp*1.4,x+sp*1.4)>0.85)) cands.push({x,s,cy,st,sc:r.f,kind:'h'});
         }
       }
     }
@@ -1129,13 +1156,14 @@ function scanScore(){
       if(!ledgersOk(k.st,k.x,k.s)) continue;
       if(k.kind==='h'&&!isolated(k.st,k.x,k.cy)&&!stemOk(k.st,findStem(k.st,k.x,k.cy))) continue;
       let stem=findStem(k.st,k.x,k.cy); if(!stemOk(k.st,stem)) stem=null; let dur;
-      if(k.kind==='f'){ if(!stem){ loose.push(k); continue; } dur=hasBeamFlag(k.st,stem)?0.5:1; }
+      if(k.kind==='f'){ if(!stem){ loose.push(k); continue; } dur=hasBeamFlag(k.st,stem)?[0.5,0.5,0.25,0.125][beamCount(k.st,stem)]:1; }
       else{
         dur=stem?2:4;
         if(!stem){ // semibreve: sopra e sotto deve esserci bianco (scarta pause e segni verticali)
           const sp=k.st.sp, up=ellFill(k.st,k.x,k.cy-sp*1.05,sp*0.3,sp*0.15), dn=ellFill(k.st,k.x,k.cy+sp*1.05,sp*0.3,sp*0.15);
           if(up>0.25&&dn>0.25) continue;
           if(blobHeight(k.st,k.x,k.cy)>1.45) continue;
+          if(!ledgersThin(k.st,k.x,k.s)) continue;   // fuori dal pentagramma: tagli addizionali veri (righe sottili), non lettere di una scritta
         }
       }
       if(hasDot(k.st,k.x,k.cy)) dur*=1.5;
@@ -1163,14 +1191,16 @@ function scanScore(){
           const r=ringInfo(st,x+dx,cy,sp*0.6,sp*0.42);
           if(ef<0.6&&r.f>=(odd?0.62:0.45)&&r.sec>=(odd?7:6)&&ellFill(st,x+dx,cy,sp*0.19,sp*0.13)<=0.35&&r.f>sc){ sc=r.f; bx=x+dx; kind='h'; }
         }
-        if(!kind||kind!==f.k.kind||!ledgersOk(st,bx,s2)) continue;   // stesso gambo = stessa durata: teste tutte piene o tutte vuote
+        if(!kind||kind!==f.k.kind||!ledgersOk(st,bx,s2)) continue;
+        // una nota dell'accordo tocca il gambo (una scritta sotto, come la "c" di cresc., no)
+        if(!stm.whole){ let touch=false; for(let y=Math.round(cy-sp*0.45);y<=Math.round(cy+sp*0.45)&&!touch;y++) for(let dx=-1;dx<=1;dx++){ const xx=sx+dx; if(y>=0&&y<H&&xx>=0&&xx<W&&dark[y*W+xx]&&!isLineRow(st,y)){touch=true;break;} } if(!touch) continue; }   // stesso gambo = stessa durata: teste tutte piene o tutte vuote
         // stesse prove delle altre note: niente travature, bandierine, stanghette
         if(kind==='f'){ const rx=sp*0.55*0.8, ry=sp*0.38*0.8;
           if(rowDark(st,cy-sp*0.33,bx-sp*0.25,bx+sp*0.25)<0.5||rowDark(st,cy+sp*0.33,bx-sp*0.25,bx+sp*0.25)<0.5) continue;
           if(ellFill(st,bx-sp*1.2,cy,rx,ry)>0.5&&ellFill(st,bx+sp*1.2,cy,rx,ry)>0.5) continue;
           if(hRun(st,bx,cy-sp*0.22)>=2&&hRun(st,bx,cy+sp*0.22)>=2) continue;
-          if(headWidth(st,bx,cy)<0.75||vRun(st,bx,cy)<0.6||barAt(st,bx)) continue;
-        } else if(!hollowWalls(st,bx,cy)||barNear(st,bx,0.8)||(beamRow(st,cy-sp*0.45,bx-sp*1.4,bx+sp*1.4)>0.85&&beamRow(st,cy+sp*0.45,bx-sp*1.4,bx+sp*1.4)>0.85)) continue;
+          if(headWidth(st,bx,cy)<0.75||vRun(st,bx,cy)<0.6||barAt(st,bx)||beamNear(st,bx,cy)) continue;
+        } else if(!hollowWalls(st,bx,cy)||barNear(st,bx,0.8)||beamNear(st,bx,cy)||(beamRow(st,cy-sp*0.45,bx-sp*1.4,bx+sp*1.4)>0.85&&beamRow(st,cy+sp*0.45,bx-sp*1.4,bx+sp*1.4)>0.85)) continue;
         found.push({k:{x:bx,s:s2,cy,st,sc,kind},stem:null,dur:f.dur,mate:f});
       }
     }
@@ -1743,15 +1773,23 @@ function meterFrom(c,all){
   }
 }
 function meterSplit(c){
-  // cifre attaccate: divido il segno a metà del pentagramma e leggo le due cifre
+  // cifre attaccate: divido il segno in due (a metà del pentagramma o dove è più stretto) e leggo le due cifre;
+  // fra i tempi possibili scelgo quello che somiglia di più (4/4, 3/4, 2/4, 6/8…)
   const sp=c.segs[0].sp, st=staffAt(c,c.start+5*sp), mid=st.top+2*sp;
   const k=c.tsComp; if(!k) return;
-  const half=up=>{const px=k.px.filter(i=>(((i/W)|0)<mid)===up); if(px.length<10) return null; let x0=1e9,y0=1e9,x1=-1,y1=-1;
+  const wr={}; for(const i of k.px){const y=(i/W)|0; wr[y]=(wr[y]||0)+1;}
+  let waist=mid, best=1e9; for(let y=Math.round(mid-sp*0.6);y<=Math.round(mid+sp*0.6);y++){ const v=(wr[y]||0)+(isLineRow(st,y)?1e6:0); if(v<best){best=v;waist=y;} }
+  const half=(up,cut)=>{const px=k.px.filter(i=>(((i/W)|0)<cut)===up); if(px.length<10) return null; let x0=1e9,y0=1e9,x1=-1,y1=-1;
     for(const i of px){const y=(i/W)|0,x=i-y*W; if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;} return {x0,y0,x1,y1,px};};
-  const a=half(true), b=half(false); if(!a||!b) return;
-  const ra=classify(a,a.y1-a.y0+1,a.y1,false,/[0-9]/), rb=classify(b,b.y1-b.y0+1,b.y1,false,/[0-9]/);
-  if(ra.length&&rb.length&&ra[0][1]>0.35&&rb[0][1]>0.35){ const num=+ra[0][0], den=+rb[0][0];
-    if(num>=1&&[1,2,4,8,16].includes(den)) detMeter={num,den,txt:num+'/'+den}; }
+  const scores=q=>{const m={}; if(!q) return m; for(const [ch,sc] of classify(q,q.y1-q.y0+1,q.y1,false,/[0-9]/)) m[ch]=Math.max(m[ch]||0,sc); return m;};
+  let top=null;
+  for(const cut of [mid,waist]){
+    const A=scores(half(true,cut)), B=scores(half(false,cut));
+    for(const t of METERS){ const [n,d]=t.split('/'); if(n.length>1) continue;
+      const v=(A[n]||0)+(B[d]||0)+(t==='4/4'?0.04:t==='3/4'||t==='2/4'?0.02:0);
+      if(!top||v>top.v) top={v,num:+n,den:+d,txt:t}; }
+  }
+  if(top&&top.v>0.75) detMeter={num:top.num,den:top.den,txt:top.txt};
 }
 function meterNow(){
   if(S.meter&&S.meter!=='auto'){const [a,b]=S.meter.split('/').map(Number);return {num:a,den:b,txt:S.meter};}
