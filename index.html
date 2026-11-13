@@ -34,7 +34,7 @@ button:active{transform:scale(.96)}
 #empty .big.alt{background:#fff;color:var(--main);border:2px solid var(--main)}
 #panel{flex:1 0 auto;position:relative;background:var(--card);border-top:2px solid var(--line);padding:.5rem .6rem .6rem;overflow:auto;box-shadow:0 -3px 10px rgba(0,0,0,.08)}
 #row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between}
-#noteName{font-size:1.9rem;font-weight:800;color:var(--acc);min-width:5.5rem}
+#noteName{display:none}
 #noteInfo{font-size:.875rem;line-height:1.35;flex:1;min-width:9rem}
 #noteInfo b{color:var(--main)}
 #ctrl{display:flex;gap:.25rem;flex-wrap:wrap}
@@ -59,11 +59,28 @@ body.onlyNeck #panel{padding-top:.2rem}
 body.noScore #panel{display:none}
 body.noScore .hplay{display:none}
 header .hp-main{background:rgba(255,255,255,.9)!important;color:var(--main)!important;min-width:2.4rem;font-weight:800}
-#hBpm{min-width:3.6rem;cursor:default}
-#hSound{max-width:9.5rem}
+#hSound{max-width:11rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gtr{flex:0 0 auto}
+#pageBtn{font-size:.8rem}
+#measBar{display:none;flex-wrap:wrap;gap:.35rem;align-items:center;margin-top:.4rem;padding:.4rem;border-radius:.8rem;background:color-mix(in srgb,var(--acc2) 12%,var(--soft));font-size:.85rem}
+#measBar.open{display:flex}
+#measBar select{background:var(--card);font-size:.85rem}
+#measBar button{background:var(--card);font-size:.8rem;padding:.4rem .6rem}
+#measBar button.on{background:var(--acc2);color:#fff}
+#soundBtn{background:var(--card);font-size:.8rem;flex:1 1 10.5rem;min-width:10.5rem;justify-content:center;overflow:hidden}
+#measBtn{white-space:nowrap}
+#soundBtn,#hSound{display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap}
+.pgList{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.6rem}
+.pgItem{background:var(--soft);border-radius:.7rem;padding:.4rem;text-align:center;font-size:.85rem;border:2px solid transparent}
+.pgItem img{width:100%;border-radius:.3rem;background:#fff;display:block;margin-bottom:.3rem}
+.pgItem.off{opacity:.4;border-color:#c92a2a}
+.pgItem.off img{filter:grayscale(1)}
+.pgItem button{width:100%;font-size:.8rem}
+.nsz{display:inline-flex;gap:.15rem}
 body.onlyNeck.noScore header{display:flex!important}
 body.noScore #wrap{flex:1 1 auto}
-#fretTools{display:inline-flex;gap:.25rem;margin-left:auto}
+#fretTools{display:inline-flex;flex-wrap:wrap;gap:.25rem;margin-left:auto}
+#fretTools button{white-space:nowrap}
 #fretTools button{background:var(--soft);font-size:.8rem;padding:.35rem .55rem}
 #fretTools button.on{background:var(--acc2);color:#fff}
 #msg{font-size:.8rem;color:#8a6d4b;margin-top:.15rem;min-height:1rem}
@@ -114,13 +131,13 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
 </head>
 <body class="noScore">
 <header>
-  <h1>🎸 Spartito → Chitarra</h1>
+  <h1><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg> Spartito → Chitarra</h1>
   <label class="btn">📂 Apri<input type="file" id="file" accept="application/pdf,image/*" multiple></label>
   <label class="btn" id="addPageBtn" style="display:none" title="Aggiungi altre pagine (PDF o foto) in fondo allo spartito">➕ Pagine<input type="file" id="fileAdd" accept="application/pdf,image/*" multiple></label>
-  <span id="pageInfo" style="display:none;font-size:.8rem;opacity:.9"></span>
+  <span id="pageInfo" style="display:none"></span><button id="pageBtn" style="display:none" title="Vedi le pagine e togli quelle che non ti servono">📑 Pagine</button>
   <span class="grp" title="Dimensione dello spartito"><button id="zout">🔍−</button><button id="zval" title="Tocca per adattare alla larghezza">100%</button><button id="zin">🔍+</button></span>
   <span class="grp hplay"><button id="hPlay" title="Play / Pausa" class="hp-main">▶</button><button id="hStop" title="Stop">⏹</button>
-    <button id="hBpmMinus" title="Più lento">−</button><button id="hBpm" title="Velocità (battiti al minuto)">♩80</button><button id="hBpmPlus" title="Più veloce">+</button><select id="hSound" title="Strumento"></select></span>
+    <button id="hSound" title="Strumento"></button></span>
   <select id="key" title="Armatura di chiave"></select>
   <button id="setBtn" title="Impostazioni: colori, strumento, nomi delle note">⚙️</button>
 </header>
@@ -142,7 +159,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
     <div id="fretSide"><button id="fretPlus" title="Tastiera più grande">＋</button><button id="fretMinus" title="Tastiera più piccola">−</button></div>
     <div id="fretWrap"><svg id="fret" viewBox="0 0 1000 236" xmlns="http://www.w3.org/2000/svg"></svg></div>
   </div>
-  <div id="miniBar"><button id="mPdf" title="Esporta PDF con i nomi">📄</button><button id="mNames" title="Nomi delle note sotto il pentagramma">🔤</button><button id="mzout" title="Spartito più piccolo">🔍−</button><button id="mzin" title="Spartito più grande">🔍+</button><button id="miniPlay" title="Play / Pausa">▶</button><button id="showAll" title="Mostra pulsanti e scritte">☰ Mostra tutto</button></div>
+  <div id="miniBar"><button id="mPdf" title="Esporta PDF con i nomi">📄</button><button id="mImg" title="Esporta immagine con i nomi">🖼</button><button id="mNames" title="Nomi delle note sotto il pentagramma">🔤</button><button id="mzout" title="Spartito più piccolo">🔍−</button><button id="mzin" title="Spartito più grande">🔍+</button><button id="miniPlay" title="Play / Pausa">▶</button><button id="showAll" title="Mostra pulsanti e scritte">☰ Mostra tutto</button></div>
   <div id="row">
     <div id="noteName">—</div>
     <div id="noteInfo">Tocca una nota sullo spartito</div>
@@ -157,7 +174,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
         <option value="0.5">♪ croma</option><option value="0.75">♪. croma puntata</option><option value="1">♩ semiminima</option><option value="1.5">♩. semimin. puntata</option>
         <option value="2">minima</option><option value="3">minima puntata</option><option value="4">semibreve</option>
       </select>
-      <button id="chordBtn" title="Mostra l'accordo" style="display:none">🎸</button>
+      <button id="chordBtn" title="Mostra l'accordo" style="display:none"><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg></button>
       <button id="delBtn" title="Togli questa nota dal brano" style="display:none">🗑</button>
       <button id="addBtn" title="Aggiungi questa nota al brano" style="display:none">➕</button>
     </div>
@@ -168,12 +185,17 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
     <div id="tempo"><span style="white-space:nowrap">♩ = <span id="bpmVal">80</span></span><button id="bpmMinus" style="min-width:2rem;padding:.3rem .5rem">−</button><input type="range" id="bpm" min="30" max="200" step="1"><button id="bpmPlus" style="min-width:2rem;padding:.3rem .5rem">+</button></div>
     <select id="rhythm"><option value="scritto">Ritmo come scritto</option><option value="uguali">Note tutte uguali</option></select>
     <select id="meterSel" title="Tempo (quante note in una battuta)"><option value="auto">Tempo: automatico</option></select>
-    <select id="soundSel" title="Suono"></select>
+    <button id="soundBtn" title="Suono"></button>
+    <button id="measBtn" title="Esercitati solo su alcune battute">🎯 Battute</button>
     <button id="loopBtn" title="Ripeti">🔁</button>
     <button id="ovBtn" title="Mostra le note riconosciute">👁</button>
   </div>
+  <div id="measBar">🎯 Suona solo dalla battuta <select id="measFrom"></select> alla <select id="measTo"></select>
+    <button id="measPick" title="Tocca sullo spartito la prima e poi l'ultima battuta">✋ Scegli sullo spartito</button>
+    <button id="measAll" title="Torna a suonare tutto il brano">✕ Tutto il brano</button>
+    <span id="measInfo" style="opacity:.8"></span></div>
   <div id="zoneBar">🎯 Porzione del manico: <button id="zoneBtn" class="chip on" style="padding:.35rem .6rem"></button>
-    <span id="fretTools"><button id="pdfBtn" title="Esporta lo spartito in PDF con i nomi delle note">📄 Esporta PDF</button><button id="namesBtn" title="Scrivi il nome di ogni nota sotto il pentagramma">🔤 Nomi note</button><button id="fretFit" title="Adatta la tastiera allo spazio">Adatta</button><button id="neckOnly" title="Nascondi tutte le scritte e lascia solo il manico">🎸 Solo manico</button></span></div>
+    <span id="fretTools"><button id="pdfBtn" title="Esporta lo spartito in PDF con i nomi delle note">📄 Esporta PDF</button><button id="imgBtn" title="Esporta lo spartito come immagine con i nomi delle note">🖼 Esporta immagine</button><button id="namesBtn" title="Scrivi il nome di ogni nota sotto il pentagramma">🔤 Nomi note</button><span class="nsz"><button id="nfMinus" title="Nomi più piccoli">A−</button><button id="nfPlus" title="Nomi più grandi">A+</button></span><button id="fretFit" title="Adatta la tastiera allo spazio">Adatta</button><button id="neckOnly" title="Nascondi tutte le scritte e lascia solo il manico"><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg> Solo manico</button></span></div>
   <div id="msg"></div>
 </div>
 
@@ -185,6 +207,22 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
   <div class="custom" id="customZone">Dal tasto <select id="zFrom"></select> al tasto <select id="zTo"></select></div>
   <label style="display:flex;gap:.4rem;align-items:center;margin-top:.9rem;font-size:.9rem"><input type="checkbox" id="askAgain" checked> Chiedimelo ogni volta che apro uno spartito</label>
   <button class="okbtn" id="zoneOk">Fatto</button>
+</div></div>
+
+<!-- finestra: pagine -->
+<div class="modal" id="pgModal"><div class="sheet">
+  <button class="close" id="pgClose">✕</button>
+  <h3>📑 Pagine dello spartito</h3>
+  <p style="margin:.2rem 0 .6rem;font-size:.9rem;opacity:.8">Tocca 🗑 sulle pagine che non ti servono, poi premi <b>Applica</b>.</p>
+  <div class="pgList" id="pgList"></div>
+  <button class="okbtn" id="pgOk">Applica</button>
+</div></div>
+
+<!-- finestra: strumento -->
+<div class="modal" id="sndModal"><div class="sheet">
+  <button class="close" id="sndClose">✕</button>
+  <h3>Strumento</h3>
+  <div class="chips" id="sndChips2"></div>
 </div></div>
 
 <!-- finestra: aspetto -->
@@ -199,12 +237,14 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
   <div class="pick"><input type="color" id="cBg"> Colore di sfondo</div>
   <h4>Stile</h4>
   <div class="chips"><button class="chip" data-style="flat">Normale (tinta unita)</button><button class="chip" data-style="grad">Sfumato</button></div>
-  <h4>🎸 Strumento (suono della riproduzione)</h4>
+  <h4><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg> Strumento (suono della riproduzione)</h4>
   <div class="chips" id="soundChips"></div>
   <h4>🔤 Nomi delle note sotto il pentagramma</h4>
   <div class="chips"><button class="chip" id="namesOn">Mostra i nomi</button><button class="chip" id="namesOff">Nascondi i nomi</button></div>
   <div class="chips" style="margin-top:.4rem"><button class="chip" data-names="it">Do Re Mi</button><button class="chip" data-names="en">C D E</button></div>
-  <div class="chips" style="margin-top:.4rem"><button class="chip" id="pdfBtn2">📄 Esporta lo spartito in PDF con i nomi</button></div>
+  <h4>Grandezza dei nomi sullo spartito: <span id="nfVal"></span></h4>
+  <input type="range" id="nfRange" min="0.6" max="2.2" step="0.1">
+  <div class="chips" style="margin-top:.4rem"><button class="chip" id="pdfBtn2">📄 Esporta in PDF con i nomi</button><button class="chip" id="imgBtn2">🖼 Esporta come immagine</button></div>
   <h4>Carattere</h4>
   <select id="fontSel" style="background:var(--soft);width:100%;padding:.6rem"></select>
   <h4>Dimensione del testo: <span id="fsVal"></span></h4>
@@ -258,7 +298,7 @@ const ZONES=[
   {id:'p9',n:'Tasti 9–12',from:9,to:12},
   {id:'custom',n:'Scelgo io…'}
 ];
-const DEF={main:'#6b3f1f',acc:'#d9480f',bg:'#f6f1e7',style:'flat',font:0,fs:1,zone:'all',zFrom:0,zTo:3,ask:true,bpm:80,rhythm:'scritto',loop:false,showOv:false,sound:'classica',meter:'auto',showNames:false,nameStyle:'it'};
+const DEF={main:'#6b3f1f',acc:'#d9480f',bg:'#f6f1e7',style:'flat',font:0,fs:1,zone:'all',zFrom:0,zTo:3,ask:true,bpm:80,rhythm:'scritto',loop:false,showOv:false,sound:'classica',meter:'auto',showNames:false,nameStyle:'it',nameFs:1};
 let S=Object.assign({},DEF);
 try{const s=JSON.parse(localStorage.getItem('spartitoChitarra')||'null');if(s)S=Object.assign(S,s);}catch(e){}
 function save(){try{localStorage.setItem('spartitoChitarra',JSON.stringify(S));}catch(e){}}
@@ -281,7 +321,7 @@ function applyLook(){
   document.body.classList.toggle('grad',S.style==='grad');
   // aggiorno la finestra
   $('cMain').value=S.main;$('cAcc').value=S.acc;$('cBg').value=S.bg;
-  $('fontSel').value=S.font;$('fsRange').value=S.fs;$('fsVal').textContent=Math.round(S.fs*100)+'%';
+  $('fontSel').value=S.font;$('fsRange').value=S.fs;$('fsVal').textContent=Math.round(S.fs*100)+'%';$('nfRange').value=S.nameFs||1;$('nfVal').textContent=Math.round((S.nameFs||1)*100)+'%';
   document.querySelectorAll('[data-style]').forEach(b=>b.classList.toggle('on',b.dataset.style===S.style));
   document.querySelectorAll('[data-names]').forEach(b=>b.classList.toggle('on',b.dataset.names===(S.nameStyle||'it')));
   document.querySelectorAll('#themes .sw').forEach((b,i)=>b.classList.toggle('on',THEMES[i].main===S.main&&THEMES[i].acc===S.acc&&THEMES[i].bg===S.bg));
@@ -296,6 +336,7 @@ function applyLook(){
   FONTS.forEach((f,i)=>{const o=document.createElement('option');o.value=i;o.textContent=f.n;o.style.fontFamily=f.v;$('fontSel').appendChild(o);});
   $('fontSel').onchange=e=>{S.font=+e.target.value;save();applyLook();};
   $('fsRange').oninput=e=>{S.fs=+e.target.value;save();applyLook();};
+  $('nfRange').oninput=e=>setNameFs(+e.target.value);
   $('cMain').oninput=e=>{S.main=e.target.value;save();applyLook();};
   $('cAcc').oninput=e=>{S.acc=e.target.value;save();applyLook();};
   $('cBg').oninput=e=>{S.bg=e.target.value;save();applyLook();};
@@ -427,7 +468,8 @@ function afterLoad(){
   document.body.classList.remove('noScore'); applyPanelH();
   $('empty').style.display='none'; $('box').style.display='block';
   $('addPageBtn').style.display=sources.length?'':'none';
-  $('pageInfo').style.display=pages.length>1?'':'none'; $('pageInfo').textContent=pages.length+' pagine';
+  $('pageBtn').style.display=pages.length>1?'':'none'; $('pageBtn').textContent='📑 '+pages.length+' pagine';
+  mRange=null; pickStage=0; $('measPick').classList.remove('on'); refreshMeasUI();
   $('marker').style.display='none'; $('wrap').scrollTop=0;
   layout(); showEmptyPanel();
   setTimeout(()=>{ if(loaded&&!scanned){ scanScore(); toast(seq.length?'Ho riconosciuto '+seq.reduce((a,g)=>a+g.length,0)+' note: premi ▶ per ascoltare':'Tocca una nota 🎵',3000);} },80);
@@ -867,7 +909,7 @@ function buildSeq(){
     if(!symCache.has(k)){let r=null;try{r=readSymbol(g);}catch(e){console.error(e);} symCache.set(k,r);}
     g.sym=symCache.get(k);
   }
-  applyMeasures(); if($('meterSel')) refreshMeterUI();
+  applyMeasures(); if($('meterSel')) refreshMeterUI(); refreshMeasUI();
   drawOverlay();
 }
 const noteY=n=>n.st.bottom-n.step*n.st.sp/2;
@@ -1101,8 +1143,8 @@ function showChord(g){
 function groupOf(i){return seq.find(g=>g.some(n=>notes.indexOf(n)===i));}
 function drawOverlay(){
   const ov=$('ov'); ov.setAttribute('viewBox','0 0 '+(W||1)+' '+(H||1));
-  if(!loaded||(!S.showOv&&!S.showNames)){ov.innerHTML='';return;}
-  let h='';
+  if(!loaded||(!S.showOv&&!S.showNames&&!measVisible())){ov.innerHTML='';return;}
+  let h=measVisible()?measSvg():'';
   if(S.showNames) h+=namesSvg();
   if(!S.showOv){ov.innerHTML=h;return;}
   seq.forEach((g,i)=>g.forEach(n=>{const r=n.st.sp*0.75;
@@ -1124,12 +1166,12 @@ function nameItems(){
   // una riga dritta sotto ogni pentagramma, con ogni nome in colonna con la sua nota
   const out=[], off={};
   seq.forEach(g=>{ if(g[0].rest) return; const ci=g[0].chain;
-    for(const n of g){ const d=noteY(n)-n.st.bottom+1.7*n.st.sp; off[ci]=Math.max(off[ci]||0,d,2.7*n.st.sp); } });
+    const k=Math.max(1,S.nameFs||1); for(const n of g){ const d=noteY(n)-n.st.bottom+(0.45+1.25*k)*n.st.sp; off[ci]=Math.max(off[ci]||0,d,(1.45+1.25*k)*n.st.sp); } });
   seq.forEach(g=>{
     if(g[0].rest) return;
     const ci=g[0].chain, c=chains[ci], ns=g.slice().sort((a,b)=>b.step-a.step);
-    const x=ns.reduce((a,n)=>a+n.x,0)/ns.length, st=c?staffAt(c,x):ns[0].st, sp=st.sp, fs=sp*1.25;
-    const y0=st.bottom+(off[ci]||2.7*sp);
+    const x=ns.reduce((a,n)=>a+n.x,0)/ns.length, st=c?staffAt(c,x):ns[0].st, sp=st.sp, fs=sp*1.25*(S.nameFs||1);
+    const y0=st.bottom+(off[ci]||(1.45+1.25*Math.max(1,S.nameFs||1))*sp);
     ns.forEach((n,k)=>out.push({x,y:y0+k*fs*1.1,fs,sp,t:noteLabel(n)}));
   });
   return out;
@@ -1162,45 +1204,80 @@ function buildPdf(pagesJpg){
   push(x+'trailer\n<< /Size '+N+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n');
   return new Blob(parts,{type:'application/pdf'});
 }
+// disegna ogni pagina dello spartito con i nomi delle note (una tela per pagina)
+async function pagesWithNames(){
+  const items=nameItems(), fam=FONTS[S.font]?FONTS[S.font].v:'sans-serif';
+  const ranges=pages.length?pages:[{y0:0,y1:H}], out=[];
+  for(const pg of ranges){
+    const h=pg.y1-pg.y0, c=document.createElement('canvas'); c.width=W; c.height=h;
+    const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,W,h);
+    g.drawImage(cv,0,pg.y0,W,h,0,0,W,h);
+    g.textAlign='center'; g.textBaseline='alphabetic'; g.lineJoin='round';
+    for(const it of items){
+      if(it.y<pg.y0||it.y-it.fs>pg.y1) continue;
+      g.font='800 '+it.fs+'px '+fam;
+      g.lineWidth=it.sp*0.28; g.strokeStyle='#fff'; g.strokeText(it.t,it.x,it.y-pg.y0);
+      g.fillStyle=S.main; g.fillText(it.t,it.x,it.y-pg.y0);
+    }
+    out.push(c);
+  }
+  return out;
+}
+const toB64=blob=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(String(fr.result).split(',')[1]);fr.readAsDataURL(blob);});
+// salva uno o più file: app Android → Download + Condividi; dentro Claude → conferma; altrimenti scaricamento
+async function saveFiles(files,mime){
+  if(window.AndroidApp&&AndroidApp.saveFile&&AndroidApp.shareSaved){
+    for(const f of files) AndroidApp.saveFile(await toB64(f.blob),f.name,mime);
+    AndroidApp.shareSaved(mime); return 'Salvato in Download ✔';
+  }
+  if(window.AndroidApp&&AndroidApp.savePdf&&mime==='application/pdf'){ AndroidApp.savePdf(await toB64(files[0].blob),files[0].name); return 'Salvato in Download ✔'; }
+  if(window.claude&&typeof claude.use==='function'){
+    try{ const dl=await claude.use('downloads');
+      if(dl){ for(const f of files) await dl.save({filename:f.name,data:f.blob}); return 'Salvato ✔'; } }
+    catch(e){ if(e&&e.code==='declined') return 'Salvataggio annullato'; }
+  }
+  for(const f of files){
+    const url=URL.createObjectURL(f.blob), a=document.createElement('a');
+    a.href=url; a.download=f.name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    await new Promise(r=>setTimeout(r,400));
+  }
+  return (files.length>1?files.length+' immagini pronte':'Pronto: '+files[0].name)+' (cartella Download)';
+}
 async function exportPdf(){
   if(!loaded){toast('Prima apri uno spartito');return;}
   if(!scanned) scanScore();
   toast('Preparo il PDF con i nomi delle note…',15000);
   await new Promise(r=>setTimeout(r,50));
   try{
-    const items=nameItems(), fam=FONTS[S.font]?FONTS[S.font].v:'sans-serif';
-    const ranges=pages.length?pages:[{y0:0,y1:H}], out=[];
-    for(const pg of ranges){
-      const h=pg.y1-pg.y0, c=document.createElement('canvas'); c.width=W; c.height=h;
-      const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,W,h);
-      g.drawImage(cv,0,pg.y0,W,h,0,0,W,h);
-      g.textAlign='center'; g.textBaseline='alphabetic'; g.lineJoin='round';
-      for(const it of items){
-        if(it.y<pg.y0||it.y-it.fs>pg.y1) continue;
-        g.font='800 '+it.fs+'px '+fam;
-        g.lineWidth=it.sp*0.28; g.strokeStyle='#fff'; g.strokeText(it.t,it.x,it.y-pg.y0);
-        g.fillStyle=S.main; g.fillText(it.t,it.x,it.y-pg.y0);
-      }
+    const out=[];
+    for(const c of await pagesWithNames()){
       const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));
-      out.push({w:W,h,jpg:new Uint8Array(await blob.arrayBuffer())});
+      out.push({w:c.width,h:c.height,jpg:new Uint8Array(await blob.arrayBuffer())});
     }
     const pdf=buildPdf(out), name=(srcName||'spartito')+'-con-nomi.pdf';
-    // app Android: salva in Download e apre "Condividi"
-    if(window.AndroidApp&&AndroidApp.savePdf){
-      const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(String(fr.result).split(',')[1]);fr.readAsDataURL(pdf);});
-      AndroidApp.savePdf(b64,name); toast('PDF salvato in Download ✔',3500); return;
-    }
-    // pagina dentro Claude: salvataggio tramite la conferma di Claude
-    if(window.claude&&typeof claude.use==='function'){
-      try{ const dl=await claude.use('downloads');
-        if(dl){ await dl.save({filename:name,data:pdf}); toast('PDF salvato ✔',3000); return; } }
-      catch(e){ if(e&&e.code==='declined'){toast('Salvataggio annullato',2500);return;} }
-    }
-    const url=URL.createObjectURL(pdf), a=document.createElement('a');
-    a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),60000);
-    toast('PDF pronto: '+name+' (cartella Download)',4000);
+    toast(await saveFiles([{blob:pdf,name}],'application/pdf'),4000);
   }catch(e){toast('Errore nel creare il PDF: '+e.message,4000);console.error(e);}
+}
+async function exportImg(){
+  if(!loaded){toast('Prima apri uno spartito');return;}
+  if(!scanned) scanScore();
+  toast('Preparo l\'immagine con i nomi delle note…',15000);
+  await new Promise(r=>setTimeout(r,50));
+  try{
+    const cs=await pagesWithNames(), base=(srcName||'spartito')+'-con-nomi', files=[];
+    for(const [i,c] of cs.entries()){
+      const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.92));
+      files.push({blob,name:base+(cs.length>1?'-pagina-'+(i+1):'')+'.jpg'});
+    }
+    toast(await saveFiles(files,'image/jpeg'),4000);
+  }catch(e){toast('Errore nel creare l\'immagine: '+e.message,4000);console.error(e);}
+}
+function setNameFs(v){
+  S.nameFs=Math.max(0.6,Math.min(2.2,Math.round(v*10)/10)); save();
+  $('nfRange').value=S.nameFs; $('nfVal').textContent=Math.round(S.nameFs*100)+'%';
+  if(!S.showNames){ setNames(true); return; }
+  drawOverlay(); toast('Nomi: '+Math.round(S.nameFs*100)+'%',1200);
 }
 function setNames(v){S.showNames=v;save();['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',v));$('namesOn').classList.toggle('on',v);$('namesOff').classList.toggle('on',!v);if(v&&loaded&&!scanned)scanScore();drawOverlay();}
 
@@ -1253,19 +1330,23 @@ function fitMeasure(M,cap){
   if(best) G.forEach((g,i)=>{g.raw=best.d[i];});
 }
 // durata di ogni nota/pausa: battute piene secondo il tempo (es. 4/4 = 4 semiminime per battuta)
+let measList=[];
 function applyMeasures(){
   seq.forEach(g=>{g.raw=g[0].rest?g[0].dur:Math.min(...g.map(n=>n.dur)); g.beats=g.raw; g.meas=null;});
   const m=meterNow(), cap=m.num*4/m.den, meas=[];
   chains.forEach((c,ci)=>{
-    const bars=(c.bars||[]).slice().sort((a,b)=>a-b); if(!bars.length) return;
-    const gs=seq.filter(g=>g[0].chain===ci); let bi=0, M=[], closed=false;
+    const bars=(c.bars||[]).slice().sort((a,b)=>a-b), gs=seq.filter(g=>g[0].chain===ci); if(!gs.length) return;
+    if(!bars.length){ meas.push({g:gs,closed:false,end:null,chain:ci,start:c.start,nofit:true}); return; }
+    let bi=0, M=[], st0=c.start;
     for(const g of gs){
-      while(bi<bars.length&&bars[bi]<g[0].x){ if(M.length){meas.push({g:M,closed:true,end:bars[bi]});M=[];} bi++; }
+      while(bi<bars.length&&bars[bi]<g[0].x){ if(M.length){meas.push({g:M,closed:true,end:bars[bi],chain:ci,start:st0});M=[];} st0=bars[bi]; bi++; }
       M.push(g);
     }
-    if(M.length) meas.push({g:M,closed:bi<bars.length,end:bi<bars.length?bars[bi]:null});
+    if(M.length) meas.push({g:M,closed:bi<bars.length,end:bi<bars.length?bars[bi]:null,chain:ci,start:st0});
   });
+  measList=meas.map((M,k)=>({num:k+1,chain:M.chain,x0:M.start,x1:M.end!=null?M.end:Math.max(...M.g.map(g=>g[0].x))+M.g[0][0].st.sp*1.5}));
   meas.forEach((M,k)=>{
+    if(M.nofit){ M.g.forEach(g=>{g.meas=k+1;}); return; }
     const sum0=M.g.reduce((a,g)=>a+g.raw,0); if(!sum0) return;
     if(Math.abs(sum0-cap)>0.01&&!(sum0<cap&&(k===0||k===meas.length-1||!M.closed))) fitMeasure(M,cap);
     const sum=M.g.reduce((a,g)=>a+g.raw,0); let sc=1;
@@ -1279,7 +1360,7 @@ function applyMeasures(){
 /* ---------- riproduzione ---------- */
 let playing=false, playTimer=null, playIdx=0;
 const TEMPO_NAMES=[[60,'Largo'],[76,'Adagio'],[108,'Andante'],[120,'Moderato'],[168,'Allegro'],[999,'Presto']];
-function setBpm(v){S.bpm=Math.max(30,Math.min(200,Math.round(v)));save();$('bpm').value=S.bpm;$('hBpm').textContent='♩'+S.bpm;$('bpmVal').textContent=S.bpm+' · '+TEMPO_NAMES.find(t=>S.bpm<t[0])[1];}
+function setBpm(v){S.bpm=Math.max(30,Math.min(200,Math.round(v)));save();$('bpm').value=S.bpm;$('bpmVal').textContent=S.bpm+' · '+TEMPO_NAMES.find(t=>S.bpm<t[0])[1];}
 $('bpm').oninput=e=>setBpm(+e.target.value);
 $('bpmMinus').onclick=()=>setBpm(S.bpm-5); $('bpmPlus').onclick=()=>setBpm(S.bpm+5);
 $('rhythm').onchange=e=>{S.rhythm=e.target.value;save();buildSeq();};
@@ -1293,7 +1374,6 @@ $('stopBtn').onclick=()=>stop();
 function setPlayUI(){const t=playing?'⏸':'▶';$('playBtn').textContent=t;$('miniPlay').textContent=t;$('hPlay').textContent=t;}
 $('miniPlay').onclick=$('hPlay').onclick=()=>playing?pause():play();
 $('hStop').onclick=()=>stop();
-$('hBpmMinus').onclick=()=>setBpm(S.bpm-5); $('hBpmPlus').onclick=()=>setBpm(S.bpm+5);
 function setOnlyNeck(v){S.onlyNeck=v;save();document.body.classList.toggle('onlyNeck',v);applyPanelH();layout();}
 $('neckOnly').onclick=()=>setOnlyNeck(true);
 $('showAll').onclick=()=>setOnlyNeck(false);
@@ -1302,12 +1382,17 @@ function play(){
   if(!scanned) scanScore(); else buildSeq();
   if(!seq.length){toast('Non ho trovato note da suonare in questa pagina',3500);return;}
   if(playIdx>=seq.length) playIdx=0;
+  if(mRange){ if(!inRange(seq[playIdx])) playIdx=rangeStart(); if(playIdx<0){toast('Non trovo note in queste battute',3000);playIdx=0;return;} }
   playing=true; setPlayUI(); tick();
 }
 function pause(){playing=false;clearTimeout(playTimer);setPlayUI();}
 function stop(){pause();playIdx=0;}
 async function tick(){
   if(!playing) return;
+  if(mRange&&(playIdx>=seq.length||!inRange(seq[playIdx]))){
+    if(S.loop) playIdx=rangeStart();
+    else { stop(); toast('Fine delle battute '+mRange.a+'–'+mRange.b+' 🎶'); return; }
+  }
   if(playIdx>=seq.length){
     if(S.loop) playIdx=0;
     else { stop(); toast('Fine del brano 🎶'); return; }
@@ -1330,6 +1415,87 @@ async function tick(){
 }
 function seqIndexOf(i){return seq.findIndex(g=>g.some(n=>notes.indexOf(n)===i));}
 
+/* ---------- esercizio su alcune battute ---------- */
+let mRange=null, pickStage=0, pickA=0;
+const inRange=g=>!mRange||(g&&g.meas!=null&&g.meas>=mRange.a&&g.meas<=mRange.b);
+const rangeStart=()=>seq.findIndex(inRange);
+const measVisible=()=>!!mRange||$('measBar').classList.contains('open');
+function measAt(x,y){
+  for(const m of measList){ const c=chains[m.chain]; if(!c) continue; const st=staffAt(c,(m.x0+m.x1)/2);
+    if(x>=m.x0-st.sp*0.3&&x<=m.x1+st.sp*0.3&&y>=st.top-st.sp*4&&y<=st.bottom+st.sp*4.5) return m.num; }
+  return 0;
+}
+function measSvg(){
+  let h='';
+  for(const m of measList){ const c=chains[m.chain]; if(!c) continue; const st=staffAt(c,(m.x0+m.x1)/2), sp=st.sp;
+    const sel=mRange&&m.num>=mRange.a&&m.num<=mRange.b, pk=pickStage===2&&m.num===pickA;
+    if(sel||pk) h+='<rect x="'+m.x0+'" y="'+(st.top-sp*1.6)+'" width="'+Math.max(1,m.x1-m.x0)+'" height="'+(st.bottom-st.top+sp*3.2)+'" fill="#1c7ed6" fill-opacity="'+(pk?.22:.11)+'" stroke="#1c7ed6" stroke-opacity=".5" stroke-width="'+Math.max(1,sp*0.08)+'"/>';
+    h+='<text x="'+(m.x0+sp*0.35)+'" y="'+(st.top-sp*0.55)+'" font-size="'+(sp*1.05)+'" font-weight="800" fill="#1c7ed6" fill-opacity="'+(sel||!mRange?1:.45)+'" stroke="#fff" stroke-width="'+(sp*0.25)+'" paint-order="stroke" font-family="sans-serif">'+m.num+'</text>';
+  }
+  return h;
+}
+function refreshMeasUI(){
+  const n=measList.length;
+  if(mRange){ mRange.a=Math.min(mRange.a,n); mRange.b=Math.min(mRange.b,n); if(!n) mRange=null; }
+  for(const id of ['measFrom','measTo']){ const el=$(id); if(el.options.length!==n){ el.innerHTML=''; for(let i=1;i<=n;i++){const o=document.createElement('option');o.value=i;o.textContent=i;el.appendChild(o);} } }
+  $('measFrom').value=mRange?mRange.a:1; $('measTo').value=mRange?mRange.b:n;
+  $('measBtn').classList.toggle('on',!!mRange);
+  $('measBtn').textContent=mRange?'🎯 Battute '+mRange.a+(mRange.b>mRange.a?'–'+mRange.b:''):'🎯 Battute';
+  $('measInfo').textContent=!n?(scanned?'Non ho trovato le stanghette delle battute':''):(mRange?'':'Il brano ha '+n+' battute');
+}
+function setRange(a,b){
+  if(!measList.length) return;
+  if(a>b) [a,b]=[b,a];
+  mRange=(a===1&&b===measList.length)?null:{a,b};
+  if(mRange&&!S.loop){ S.loop=true; save(); $('loopBtn').classList.toggle('on',true); }
+  const was=playing; pause(); playIdx=mRange?Math.max(0,rangeStart()):0;
+  refreshMeasUI(); drawOverlay();
+  toast(mRange?'Suono le battute '+a+(b>a?'–'+b:'')+(S.loop?' a ripetizione 🔁':''):'Suono tutto il brano',2500);
+  if(was) play();
+}
+$('measBtn').onclick=()=>{
+  if(!loaded){toast('Prima apri uno spartito');return;}
+  if(!scanned) scanScore();
+  const open=!$('measBar').classList.contains('open'); $('measBar').classList.toggle('open',open);
+  if(!open){ pickStage=0; $('measPick').classList.remove('on'); }
+  refreshMeasUI(); drawOverlay(); applyPanelH(); layout();
+};
+$('measFrom').onchange=$('measTo').onchange=()=>setRange(+$('measFrom').value,+$('measTo').value);
+$('measPick').onclick=()=>{
+  if(!measList.length){toast('Non ho trovato le battute in questo spartito',3000);return;}
+  pickStage=pickStage?0:1; $('measPick').classList.toggle('on',!!pickStage); drawOverlay();
+  if(pickStage) toast('Tocca sullo spartito la prima battuta',3000);
+};
+$('measAll').onclick=()=>{ pickStage=0; $('measPick').classList.remove('on'); setRange(1,measList.length||1); };
+
+/* ---------- pagine: togliere quelle che non servono ---------- */
+let pgOff=[];
+function openPages(){
+  if(pages.length<2) return;
+  pgOff=pages.map(()=>false);
+  const L=$('pgList'); L.innerHTML='';
+  pages.forEach((pg,i)=>{
+    const h=pg.y1-pg.y0, t=document.createElement('canvas'), tw=240; t.width=tw; t.height=Math.round(tw*h/W);
+    t.getContext('2d').drawImage(cv,0,pg.y0,W,h,0,0,t.width,t.height);
+    const d=document.createElement('div'); d.className='pgItem';
+    d.innerHTML='<img src="'+t.toDataURL('image/jpeg',0.7)+'" alt=""><div>Pagina '+(i+1)+'</div><button>🗑 Togli</button>';
+    d.querySelector('button').onclick=()=>{ pgOff[i]=!pgOff[i]; d.classList.toggle('off',pgOff[i]); d.querySelector('button').textContent=pgOff[i]?'↩ Rimetti':'🗑 Togli'; };
+    L.appendChild(d);
+  });
+  $('pgModal').classList.add('open');
+}
+$('pageBtn').onclick=openPages;
+$('pgClose').onclick=()=>$('pgModal').classList.remove('open');
+$('pgOk').onclick=async()=>{
+  const n=pgOff.filter(Boolean).length;
+  if(!n){$('pgModal').classList.remove('open');return;}
+  if(n>=pages.length){toast('Lascia almeno una pagina',2500);return;}
+  $('pgModal').classList.remove('open');
+  sources=sources.filter((p,i)=>{ const off=i<pgOff.length&&pgOff[i]; if(off&&p.url) URL.revokeObjectURL(p.url); return !off; });
+  toast('Tolgo '+n+(n>1?' pagine':' pagina')+'…',8000);
+  try{ await renderAll(); toast('Fatto: '+(n>1?'tolte '+n+' pagine':'tolta 1 pagina')+' ✔',2500); }catch(e){toast('Errore: '+e.message,4000);}
+};
+
 /* ---------- altezze ---------- */
 function pitch(step,ov){
   const d=30+step;                      // 30 = Mi4 (riga in basso, chiave di violino)
@@ -1346,6 +1512,12 @@ $('box').addEventListener('click',e=>{
   const r=cv.getBoundingClientRect();
   const x=(e.clientX-r.left)*W/r.width, y=(e.clientY-r.top)*H/r.height;
   if(!scanned) scanScore();
+  if(pickStage){
+    const m=measAt(x,y); if(!m){toast('Tocca dentro una battuta, sul pentagramma',2500);return;}
+    if(pickStage===1){ pickA=m; pickStage=2; drawOverlay(); toast('Battuta '+m+': ora tocca l\'ultima battuta',3000); }
+    else { pickStage=0; $('measPick').classList.remove('on'); setRange(Math.min(pickA,m),Math.max(pickA,m)); }
+    return;
+  }
   const ri=notes.findIndex(n=>n.rest&&!n.del&&x>=n.box[0]-n.st.sp*0.4&&x<=n.box[2]+n.st.sp*0.4&&y>=n.box[1]-n.st.sp*0.4&&y<=n.box[3]+n.st.sp*0.4);
   if(ri>=0){ showRest(ri); const si=seqIndexOf(ri); if(si>=0){playIdx=si; if(playing){clearTimeout(playTimer);tick();}} return; }
   const st=detectStaff(Math.round(x),Math.round(y));
@@ -1440,7 +1612,7 @@ function update(play){
     $('noteInfo').innerHTML+='<br><small style="color:var(--acc2)">'+(ln.accSrc==='battuta'?w.replace('accanto alla nota','già scritto prima nella battuta'):w)+'</small>';
   }
   $('msg').textContent=outside?'⚠️ Questa nota non si trova nella porzione scelta: ti mostro la posizione più vicina.'
-    :(grp&&grp.sym?'Fa parte dell\'accordo '+grp.sym.text+': tocca 🎸 per vederlo.':(pos.length>1?'Tocca un altro pallino sulla tastiera per vedere le altre posizioni della stessa nota.':''));
+    :(grp&&grp.sym?'Fa parte dell\'accordo '+grp.sym.text+': tocca il pulsante della chitarra per vederlo.':(pos.length>1?'Tocca un altro pallino sulla tastiera per vedere le altre posizioni della stessa nota.':''));
   drawFret(pos,sel,name);
   if(play) pluck(p.sound);
 }
@@ -1505,13 +1677,14 @@ function drawFret(pos,sel,name,shape){
 function showEmptyPanel(){restIdx=null;['delBtn','addBtn','durSel','chordBtn'].forEach(id=>$(id).style.display='none');$('noteName').textContent='—';$('noteInfo').textContent='Tocca una nota sullo spartito';$('msg').textContent='';drawFret([],-1);}
 
 /* ---------- suoni ---------- */
+const GTR_C='<svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg>', GTR_A='<svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#f2d29a" stroke="#9a7040" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg>';
 const SOUNDS=[
-  {id:'classica',n:'🎸 Chitarra classica'},
-  {id:'acustica',n:'🎸 Chitarra acustica (acciaio)'},
-  {id:'elettrica',n:'⚡ Chitarra elettrica pulita'},
-  {id:'distorta',n:'🔥 Chitarra elettrica distorta'},
-  {id:'piano',n:'🎹 Pianoforte'},
-  {id:'puro',n:'〰️ Suono puro (per l\'orecchio)'}
+  {id:'classica',ic:GTR_C,n:'Chitarra classica'},
+  {id:'acustica',ic:GTR_A,n:'Chitarra acustica (acciaio)'},
+  {id:'elettrica',ic:'⚡',n:'Chitarra elettrica pulita'},
+  {id:'distorta',ic:'🔥',n:'Chitarra elettrica distorta'},
+  {id:'piano',ic:'🎹',n:'Pianoforte'},
+  {id:'puro',ic:'〰️',n:'Suono puro (per l\'orecchio)'}
 ];
 let actx=null, distCurve=null, warmCurve=null;
 function curve(k){const n=2048,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i*2/n-1;c[i]=(1+k)*x/(1+k*Math.abs(x));}return c;}
@@ -1743,21 +1916,24 @@ function demo(){
 }
 $('demoBtn2').onclick=demo;
 SOUNDS.forEach(x=>{
-  for(const id of ['soundSel','hSound']){const o=document.createElement('option');o.value=x.id;o.textContent=x.n;$(id).appendChild(o);}
-  const b=document.createElement('button');b.className='chip';b.dataset.sound=x.id;b.textContent=x.n;b.onclick=()=>setSound(x.id);$('soundChips').appendChild(b);
+  for(const box of ['soundChips','sndChips2']){const b=document.createElement('button');b.className='chip';b.dataset.sound=x.id;b.innerHTML=x.ic+' '+x.n;
+    b.onclick=()=>{setSound(x.id); if(box==='sndChips2') $('sndModal').classList.remove('open');}; $(box).appendChild(b);}
 });
+function soundLabel(){const x=SOUNDS.find(q=>q.id===S.sound)||SOUNDS[0]; $('hSound').innerHTML=x.ic+' '+x.n.replace(/ \(.*\)/,''); $('soundBtn').innerHTML=x.ic+' '+x.n.replace(/ \(.*\)/,'')+' ▾';}
 function setSound(id){
-  S.sound=id;save();
-  $('soundSel').value=id;$('hSound').value=id;
+  S.sound=id;save(); soundLabel();
   document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===id));
   if(!playing){ if(cur) pluck(pitch(cur.step,cur.ov).sound); else pluck(57); }
 }
-$('soundSel').onchange=e=>setSound(e.target.value);
-$('hSound').onchange=e=>setSound(e.target.value);
+$('hSound').onclick=$('soundBtn').onclick=()=>$('sndModal').classList.add('open');
+$('sndClose').onclick=()=>$('sndModal').classList.remove('open');
+$('sndModal').onclick=e=>{if(e.target.id==='sndModal')$('sndModal').classList.remove('open');};
 $('namesOn').onclick=()=>setNames(true);
 ['pdfBtn','pdfBtn2','mPdf'].forEach(id=>$(id).onclick=exportPdf);
+['imgBtn','imgBtn2','mImg'].forEach(id=>$(id).onclick=exportImg);
+$('nfMinus').onclick=()=>setNameFs((S.nameFs||1)-0.1); $('nfPlus').onclick=()=>setNameFs((S.nameFs||1)+0.1);
 $('namesOff').onclick=()=>setNames(false);
-applyPanelH(); applyLook(); refreshZoneUI(); setBpm(S.bpm); document.body.classList.toggle('onlyNeck',!!S.onlyNeck); layout(); $('rhythm').value=S.rhythm; $('soundSel').value=S.sound; $('hSound').value=S.sound; document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===S.sound)); $('meterSel').value=S.meter||'auto'; $('namesBtn').onclick=()=>setNames(!S.showNames); $('mNames').onclick=()=>setNames(!S.showNames); ['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',!!S.showNames)); $('namesOn').classList.toggle('on',!!S.showNames); $('namesOff').classList.toggle('on',!S.showNames); $('loopBtn').classList.toggle('on',S.loop); $('ovBtn').classList.toggle('on',S.showOv);
+applyPanelH(); applyLook(); refreshZoneUI(); setBpm(S.bpm); document.body.classList.toggle('onlyNeck',!!S.onlyNeck); layout(); $('rhythm').value=S.rhythm; soundLabel(); document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===S.sound)); $('meterSel').value=S.meter||'auto'; $('namesBtn').onclick=()=>setNames(!S.showNames); $('mNames').onclick=()=>setNames(!S.showNames); ['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',!!S.showNames)); $('namesOn').classList.toggle('on',!!S.showNames); $('namesOff').classList.toggle('on',!S.showNames); $('loopBtn').classList.toggle('on',S.loop); $('ovBtn').classList.toggle('on',S.showOv);
 </script>
 </body>
 </html>
