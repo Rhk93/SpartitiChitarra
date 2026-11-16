@@ -1007,6 +1007,37 @@ function stackedDigits(k,st){
   k.digSc=Math.min(sc(half(true)),sc(half(false)));
   return k.digSc>=0.4;
 }
+function arpZones(c){
+  // segno dell'arpeggio: una striscia verticale stretta (meno di uno spazio) di tratti neri obliqui,
+  // uno per ogni spazio, alta almeno 2 spazi e mezzo, senza tratti dritti lunghi (non è un gambo né un'alterazione)
+  const sp0=c.segs[0].sp, t0=c.segs[0].t||2, x0=Math.round(c.start+sp0*2), x1=Math.min(W-1,Math.round(c.segs[c.segs.length-1].x1+sp0)), zones=[];
+  let top0=1e9,bot0=-1e9; for(const g of c.segs){top0=Math.min(top0,g.top);bot0=Math.max(bot0,g.bottom);}
+  const y0=Math.max(0,Math.round(top0-2.5*sp0)), y1=Math.min(H-1,Math.round(bot0+2.5*sp0)), bw=Math.round(sp0*1.1), hh=y1-y0+1, ww=x1-x0+1;
+  if(ww<bw*2||hh<10) return zones;
+  const m=new Uint8Array(ww*hh); for(const k of cleanComps(c,x0,y0,x1,y1)) for(const i of k.px){ const y=(i/W)|0,x=i%W; if(x>=x0&&x<=x1&&y>=y0&&y<=y1) m[(y-y0)*ww+(x-x0)]=1; }
+  const maxGap=Math.round(t0)+3;
+  for(let bx=0;bx+bw<ww;bx+=Math.max(1,Math.round(sp0*0.15))){
+    let startY=-1,gap=0,L=1e9,R=-1,moves=0,prevC=null;
+    const flush=yEnd=>{ const h=(yEnd-startY+1)/sp0;
+      // tratti obliqui: il centro del segno si sposta di continuo (un gambo o una linea dritta no)
+      if(startY>=0&&h>=3.6&&moves>=h*2) zones.push([x0+bx+L-sp0*0.25,x0+bx+R+sp0*0.25,y0+startY-sp0*0.3,y0+yEnd+sp0*0.3]);
+      startY=-1; gap=0; L=1e9; R=-1; moves=0; prevC=null; };
+    const stB=staffAt(c,x0+bx+bw/2), lw=(stB.t||2)/2+2;
+    for(let y=0;y<hh;y++){
+      // righe del pentagramma: le salto (non interrompono il segno e non contano)
+      { const Y=y0+y, k=Math.round((Y-stB.top)/stB.sp); if(k>=0&&k<=4&&Math.abs(Y-(stB.top+k*stB.sp))<=lw) continue; }
+      let l=-1,r=-1; const o=y*ww+bx; for(let x=0;x<bw;x++) if(m[o+x]){ if(l<0) l=x; r=x; }
+      if(l>0&&r<bw-1&&r-l+1<=sp0*0.8){ if(startY<0) startY=y; gap=0; L=Math.min(L,l); R=Math.max(R,r);
+        // centro del tratto più spesso della riga (ignoro una linea sottile di un pixel accanto)
+        let bs=-1,bl=0,cs=-1; for(let x=l;x<=r+1;x++){ if(x<=r&&m[o+x]){ if(cs<0) cs=x; } else if(cs>=0){ if(x-cs>bl){bl=x-cs;bs=cs;} cs=-1; } }
+        const cc=bs+bl/2; if(prevC==null) prevC=cc; else if(Math.abs(cc-prevC)>=1){ moves++; prevC=cc; } }
+      else if(startY>=0&&(l<0?++gap>maxGap:true)) flush(y-(l<0?gap:1)); }
+    flush(hh-1);
+  }
+  zones.sort((a,b)=>a[0]-b[0]); const out=[];
+  for(const z of zones){ const P=out[out.length-1]; if(P&&z[0]<=P[1]&&z[2]<=P[3]&&z[3]>=P[2]){ P[1]=Math.max(P[1],z[1]); P[2]=Math.min(P[2],z[2]); P[3]=Math.max(P[3],z[3]); } else out.push(z.slice()); }
+  return out;
+}
 function timeZones(c){
   const sp0=c.segs[0].sp, end=Math.min(W-1,c.segs[c.segs.length-1].x1+sp0*2), zones=[];
   let top0=1e9,bot0=-1e9; for(const g of c.segs){top0=Math.min(top0,g.top);bot0=Math.max(bot0,g.bottom);}
@@ -1253,6 +1284,9 @@ function scanScore(){
     notes=notes.filter(n=>!n.restGhost);
     // due numeri uno sopra l'altro (tempo, anche cambiato a metà brano): lì non ci sono note
     c.tsZones=timeZones(c);
+    // segno ondulato dell'arpeggio (linea a zig-zag verticale accanto a un accordo): non si suona
+    c.arpZones=arpZones(c);
+    if(c.arpZones.length) notes=notes.filter(n=>n.chain!==ci||!c.arpZones.some(z=>!n.rest&&n.x>=z[0]&&n.x<=z[1]&&noteY(n)>=z[2]&&noteY(n)<=z[3]));
     if(c.tsZones.length) notes=notes.filter(n=>n.chain!==ci||!c.tsZones.some(z=>n.x>=z[0]&&n.x<=z[1]));
   });
   applyAccidentals();
@@ -1631,7 +1665,9 @@ function writtenVoicing(g){
 }
 function showChord(g){
   const sym=g.sym, top=g.reduce((a,b)=>b.step>a.step?b:a);
-  const wv=writtenVoicing(g), frets=wv||chordVoicing(sym,zone());
+  // meno di 3 note leggibili: mi aiuto con la sigla (posizione completa dell'accordo)
+  const few=g.filter(n=>!n.rest).length<3;
+  const wv=few?null:writtenVoicing(g), frets=wv||chordVoicing(sym,zone());
   const names=g.filter(n=>!n.rest).sort((a,b)=>a.step-b.step).map(n=>noteLabel(n)).join(' ');
   cur=null; restIdx=null; chordShown=g;
   const m=$('marker'); m.style.display='block';
@@ -1937,9 +1973,9 @@ async function tick(){
   const g=seq[playIdx];
   if(g[0].rest) showRest(notes.indexOf(g[0]));
   else if(g.length>1&&g.sym){ const fr=showChord(g);
-    // suono le note SCRITTE dell'accordo (dal basso all'acuto), non la posizione completa della sigla
+    // con almeno 3 note leggibili suono le note SCRITTE; con meno mi aiuto con la sigla e suono l'accordo intero
     const ns=g.filter(n=>!n.rest).sort((a,b)=>a.step-b.step);
-    if(ns.length>=2) ns.forEach((n,i)=>setTimeout(()=>pluck(pitch(n.step,n.ov).sound,0.4*(g.vol||1)),i*22));
+    if(ns.length>=3) ns.forEach((n,i)=>setTimeout(()=>pluck(pitch(n.step,n.ov).sound,0.4*(g.vol||1)),i*22));
     else if(fr) strum(fr,g.vol||1); }
   else{
     // più note insieme senza sigla leggibile: suono solo la nota più alta
