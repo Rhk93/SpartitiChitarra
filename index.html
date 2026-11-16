@@ -234,7 +234,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
         <option value="2">minima</option><option value="3">minima puntata</option><option value="4">semibreve</option>
       </select>
       <button id="chordBtn" title="Mostra l'accordo" style="display:none"><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg></button>
-      <button id="delBtn" title="Togli questa nota dal brano" style="display:none">🗑</button>
+      <button id="delBtn" title="Elimina questa nota dal brano" style="display:none">🗑 Elimina</button>
       <button id="addBtn" title="Aggiungi questa nota al brano" style="display:none">➕</button>
     </div>
   </div>
@@ -1318,6 +1318,18 @@ function buildSeq(){
   ok.sort((a,b)=>a.chain-b.chain||a.x-b.x);
   seq=[];
   for(const n of ok){const g=seq[seq.length-1]; if(g&&!n.rest&&!g[0].rest&&g[0].chain===n.chain&&n.x-g[0].x<n.st.sp*((n.side||g.some(m=>m.side))?1.45:0.8)) g.push(n); else seq.push([n]);}
+  // accordo di minime (o più lunghe): le note rilevate vicinissime, prima o dopo, sono false: suono solo l'accordo
+  for(let i=0;i<seq.length;i++){ const g=seq[i]; if(g[0].rest) continue;
+    const sp=g[0].st.sp, M=g.filter(n=>n.dur>=2); if(M.length<2) continue;
+    const cx=M.reduce((a,n)=>a+n.x,0)/M.length; if(M.some(n=>Math.abs(n.x-cx)>sp*0.7)) continue;
+    // dentro il gruppo: tolgo le note brevi fuori dalla colonna dell'accordo
+    for(let k=g.length-1;k>=0;k--){ const n=g[k]; if(n.dur<2&&!n.added&&Math.abs(n.x-cx)>sp*0.6) g.splice(k,1); }
+    const x0=Math.min(...g.map(n=>n.x)), x1=Math.max(...g.map(n=>n.x)), lim=sp*1.8;
+    for(const j of [i-1,i+1]){ const h=seq[j]; if(!h||h.drop||h[0].rest||h[0].chain!==g[0].chain||h.some(n=>n.added)) continue;
+      if(h.filter(n=>n.dur>=2).length>=2) continue;
+      const hx0=Math.min(...h.map(n=>n.x)), hx1=Math.max(...h.map(n=>n.x));
+      if((j<i&&x0-hx1<lim)||(j>i&&hx0-x1<lim)) h.drop=true; } }
+  seq=seq.filter(g=>!g.drop);
   // controllo sempre se sopra le note c'è la sigla di un accordo: se c'è, lì c'è un accordo
   for(const g of seq) if(!g[0].rest){
     const k=g[0].chain+':'+Math.round(Math.min(...g.map(n=>n.x))/4);
@@ -1938,6 +1950,23 @@ function applyMeasures(){
     }
     if(M.length) meas.push({g:M,closed:bi<bars.length,end:bi<bars.length?bars[bi]:null,chain:ci,start:st0});
   });
+  // se in una battuta gli accordi da soli (più le pause) riempiono il tempo, suono solo quelli: le altre note sono false
+  const chordDur=g=>{ if(g[0].rest) return null; const sp=g[0].st.sp, cnt={};
+    for(const n of g) cnt[n.dur]=(cnt[n.dur]||0)+1;
+    const [d,c]=Object.entries(cnt).sort((a,b)=>b[1]-a[1]||b[0]-a[0])[0];
+    if(c>=2&&c*2>g.length){ const ns=g.filter(n=>n.dur==d), cx=ns.reduce((a,n)=>a+n.x,0)/ns.length; if(ns.every(n=>Math.abs(n.x-cx)<=sp*0.7)) return +d; }
+    if(g.sym&&g.length<=2) return Math.min(...g.map(n=>n.dur));
+    return null; };
+  for(const M of meas){ if(M.nofit||!M.closed) continue;
+    const cd=M.g.map(chordDur), ch=M.g.filter((g,i)=>cd[i]!=null); if(!ch.length||ch.length===M.g.length) continue;
+    const sum=M.g.reduce((a,g,i)=>a+(cd[i]!=null?cd[i]:g[0].rest?g[0].dur:0),0);
+    if(Math.abs(sum-cap)>0.01) continue;
+    const extra=M.g.filter((g,i)=>cd[i]==null&&!g[0].rest&&!g.some(n=>n.added));
+    if(!extra.length) continue;
+    extra.forEach(g=>g.drop=true); M.g=M.g.filter(g=>!g.drop);
+    M.g.forEach((g,i)=>{ const d=chordDur(g); if(d!=null) g.raw=d; });
+  }
+  if(seq.some(g=>g.drop)) seq=seq.filter(g=>!g.drop);
   measList=meas.map((M,k)=>({num:k+1,chain:M.chain,x0:M.start,x1:M.end!=null?M.end:Math.max(...M.g.map(g=>g[0].x))+M.g[0][0].st.sp*1.5}));
   meas.forEach((M,k)=>{
     if(M.nofit){ M.g.forEach(g=>{g.meas=k+1;}); return; }
@@ -2427,7 +2456,7 @@ const REST_OPTS=[[4,'Semibreve'],[2,'Minima'],[1,'Semiminima'],[0.5,'Croma'],[0.
 if(!DUR_NAME[0.25]) DUR_NAME[0.25]='semicroma';
 (function(){
   const menu=document.createElement('div'); menu.id='restMenu'; document.body.appendChild(menu);
-  menu.innerHTML='<div class="rt">Aggiungi una pausa qui:</div>'+REST_OPTS.map(([d,t])=>'<button data-d="'+d+'"><svg viewBox="0 0 24 48" width="20" height="40"><g stroke="#999" stroke-width=".8">'+[0,1,2,3,4].map(i=>'<line x1="0" x2="24" y1="'+(4+i*10)+'" y2="'+(4+i*10)+'"/>').join('')+'</g>'+restGlyph(12,4,10,d,'currentColor').replace(/<rect[^>]*fill-opacity[^>]*\/>/,'')+'</svg>'+t+'</button>').join('');
+  menu.innerHTML='<button id="rmDel" style="color:#e03131;font-weight:700">🗑 Elimina questa nota</button><div class="rt">Aggiungi una pausa qui:</div>'+REST_OPTS.map(([d,t])=>'<button data-d="'+d+'"><svg viewBox="0 0 24 48" width="20" height="40"><g stroke="#999" stroke-width=".8">'+[0,1,2,3,4].map(i=>'<line x1="0" x2="24" y1="'+(4+i*10)+'" y2="'+(4+i*10)+'"/>').join('')+'</g>'+restGlyph(12,4,10,d,'currentColor').replace(/<rect[^>]*fill-opacity[^>]*\/>/,'')+'</svg>'+t+'</button>').join('');
   let at=null, timer=null, sx=0, sy=0; window.__longAt=0;
   const box=$('box'), busy=()=>document.body.classList.contains('moving')||document.body.classList.contains('erasing');
   const close=()=>{menu.classList.remove('open');at=null;};
@@ -2437,7 +2466,14 @@ if(!DUR_NAME[0.25]) DUR_NAME[0.25]='semicroma';
       if(!scanned) scanScore();
       let ci=-1,bd=1e9; chains.forEach((c,i)=>{const st=staffAt(c,x); const d=Math.max(0,st.top-y,y-st.bottom); if(d<st.sp*3&&d<bd){bd=d;ci=i;}});
       if(ci<0){toast('Tieni premuto sul pentagramma, dove vuoi la pausa',2500);return;}
-      window.__longAt=Date.now(); at={x,ci}; if(navigator.vibrate) navigator.vibrate(20);
+      // c'è già una nota (o una pausa) dove ho tenuto premuto? allora offro anche di eliminarla
+      const sp0=staffAt(chains[ci],x).sp; let di=-1,dd=1e9;
+      notes.forEach((n,i)=>{ if(n.del) return; let d;
+        if(n.rest){ const b=n.box; if(x<b[0]-sp0*0.4||x>b[2]+sp0*0.4||y<b[1]-sp0*0.4||y>b[3]+sp0*0.4) return; d=Math.abs(x-(b[0]+b[2])/2); }
+        else { const dx=Math.abs(n.x-x), dy=Math.abs(noteY(n)-y); if(dx>sp0*0.9||dy>sp0*0.6) return; d=dx+dy*2; }
+        if(d<dd){dd=d;di=i;} });
+      const rd=menu.querySelector('#rmDel'); rd.style.display=di>=0?'':'none'; rd.textContent=di>=0&&notes[di].rest?'🗑 Elimina questa pausa':'🗑 Elimina questa nota';
+      window.__longAt=Date.now(); at={x,ci,di}; if(navigator.vibrate) navigator.vibrate(20);
       menu.classList.add('open'); const mw=menu.offsetWidth, mh=menu.offsetHeight;
       menu.style.left=Math.max(6,Math.min(innerWidth-mw-6,sx-mw/2))+'px'; menu.style.top=Math.max(6,Math.min(innerHeight-mh-6,sy+12))+'px'; },550); });
   const cancel=e=>{ if(timer&&(!e||e.type!=='pointermove'||Math.hypot(e.clientX-sx,e.clientY-sy)>10)){clearTimeout(timer);timer=null;} };
@@ -2445,6 +2481,7 @@ if(!DUR_NAME[0.25]) DUR_NAME[0.25]='semicroma';
   box.addEventListener('click',e=>{ if(Date.now()-window.__longAt<800){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
   document.addEventListener('pointerdown',e=>{ if(menu.classList.contains('open')&&!menu.contains(e.target)) close(); },true);
   menu.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||!at) return;
+    if(b.id==='rmDel'){ const n=notes[at.di]; if(n){ n.del=true; close(); if(cur&&cur.idx===notes.indexOf(n)) cur.idx=null; restIdx=null; buildSeq(); $('marker').style.display='none'; showEmptyPanel(); toast(n.rest?'Pausa eliminata':'Nota eliminata',1600);} return; }
     const d=+b.dataset.d, st=staffAt(chains[at.ci],at.x), sp=st.sp;
     notes.push({x:at.x,rest:true,dur:d,st,chain:at.ci,added:true,box:[at.x-sp*0.7,st.top+sp*0.4,at.x+sp*0.7,st.top+sp*3.6]});
     close(); buildSeq(); const i=notes.length-1; showRest(i); const si=seqIndexOf(i); if(si>=0&&!playing) playIdx=si;
