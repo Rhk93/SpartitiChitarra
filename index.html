@@ -127,6 +127,14 @@ body.noScore #wrap{flex:1 1 auto}
 #toast{position:fixed;left:50%;top:38%;transform:translateX(-50%);background:#222;color:#fff;padding:.5rem .9rem;border-radius:.6rem;font-size:.875rem;display:none;z-index:30;max-width:90vw;text-align:center}
 .pos{cursor:pointer}
 #ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#metroBox{display:inline-flex;align-items:center;gap:.3rem}
+#metroBtn.on{background:var(--main);color:#fff}
+#metroVol{width:5.5rem}
+#restMenu{position:fixed;z-index:60;display:none;background:var(--card,#fff);border-radius:.8rem;box-shadow:0 6px 22px rgba(0,0,0,.3);padding:.4rem;gap:.25rem;flex-direction:column;min-width:10rem}
+#restMenu.open{display:flex}
+#restMenu .rt{font-size:.8rem;opacity:.7;padding:.1rem .4rem}
+#restMenu button{display:flex;align-items:center;gap:.5rem;text-align:left;padding:.35rem .5rem;margin:0;background:transparent;border-radius:.5rem}
+#restMenu button:active,#restMenu button:hover{background:var(--soft)}
 #playBar{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;margin-top:.5rem;padding:.4rem;border-radius:.8rem;background:var(--soft)}
 #playBar button{background:var(--card);font-size:1.05rem;padding:.45rem .65rem;min-width:2.6rem}
 #playBtn{background:var(--main)!important;color:#fff;min-width:3.2rem!important}
@@ -234,6 +242,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
     <button id="playBtn" title="Play / Pausa">▶</button>
     <button id="stopBtn" title="Stop">⏹</button>
     <div id="tempo"><span style="white-space:nowrap">♩ = <span id="bpmVal">80</span></span><button id="bpmMinus" style="min-width:2rem;padding:.3rem .5rem">−</button><input type="range" id="bpm" min="30" max="200" step="1"><button id="bpmPlus" style="min-width:2rem;padding:.3rem .5rem">+</button></div>
+    <span id="metroBox"><button id="metroBtn" title="Tic del metronomo durante la riproduzione">🥢 Tic</button><input type="range" id="metroVol" min="0" max="100" step="1" title="Volume del tic"></span>
     <select id="rhythm"><option value="scritto">Ritmo come scritto</option><option value="uguali">Note tutte uguali</option></select>
     <select id="meterSel" title="Tempo (quante note in una battuta)"><option value="auto">Tempo: automatico</option></select>
     <button id="soundBtn" title="Suono"></button>
@@ -366,7 +375,7 @@ const ZONES=[
   {id:'p1b',n:'Prima posizione (0–4)',from:0,to:4},
   {id:'custom',n:'Scelgo io…'}
 ];
-const DEF={main:'#6b3f1f',acc:'#d9480f',bg:'#f6f1e7',style:'flat',font:0,fs:1,zone:'all',zFrom:0,zTo:3,ask:true,bpm:80,dyn:true,rhythm:'scritto',loop:false,showOv:false,sound:'classica',meter:'auto',showNames:false,nameStyle:'it',nameFs:1,hands:true,chordOnly:true,ball:true};
+const DEF={main:'#6b3f1f',acc:'#d9480f',bg:'#f6f1e7',style:'flat',font:0,fs:1,zone:'all',zFrom:0,zTo:3,ask:true,bpm:80,dyn:true,rhythm:'scritto',loop:false,showOv:false,sound:'classica',meter:'auto',showNames:false,nameStyle:'it',nameFs:1,hands:true,chordOnly:true,ball:true,metro:false,metroVol:60};
 let S=Object.assign({},DEF);
 try{const s=JSON.parse(localStorage.getItem('spartitoChitarra')||'null');if(s)S=Object.assign(S,s);}catch(e){}
 {const old={p2:[2,5],p4:[4,7],p5:[5,8],p7:[7,10],p9:[9,12]}[S.zone]; if(old){S.zone='custom';S.zFrom=old[0];S.zTo=old[1];}}
@@ -1309,11 +1318,17 @@ function buildSeq(){
   ok.sort((a,b)=>a.chain-b.chain||a.x-b.x);
   seq=[];
   for(const n of ok){const g=seq[seq.length-1]; if(g&&!n.rest&&!g[0].rest&&g[0].chain===n.chain&&n.x-g[0].x<n.st.sp*((n.side||g.some(m=>m.side))?1.45:0.8)) g.push(n); else seq.push([n]);}
-  for(const g of seq) if(g.length>1){
+  // controllo sempre se sopra le note c'è la sigla di un accordo: se c'è, lì c'è un accordo
+  for(const g of seq) if(!g[0].rest){
     const k=g[0].chain+':'+Math.round(Math.min(...g.map(n=>n.x))/4);
     if(!symCache.has(k)){let r=null;try{r=readSymbol(g);}catch(e){console.error(e);} symCache.set(k,r);}
     g.sym=symCache.get(k);
   }
+  // una sigla vale per una sola posizione: la tengo solo sul gruppo di note più vicino al suo inizio
+  const byBox=new Map();
+  for(const g of seq) if(g.sym&&g.sym.box){ const b=g.sym.box, key=g[0].chain+':'+Math.round(b[0])+':'+Math.round(b[1]);
+    const d=Math.abs(Math.min(...g.map(n=>n.x))-(b[0]+g[0].st.sp*0.3)); const o=byBox.get(key);
+    if(!o||d<o.d){ if(o) o.g.sym=null; byBox.set(key,{g,d}); } else g.sym=null; }
   applyMeasures(); applyDynamics(); if($('meterSel')) refreshMeterUI(); refreshMeasUI();
   drawOverlay();
 }
@@ -1453,6 +1468,10 @@ function readSymbol(g){
     };
     rec(0,'',0);
     if(best){const b=word.reduce((a,c)=>[Math.min(a[0],c.x0),Math.min(a[1],c.y0),Math.max(a[2],c.x1),Math.max(a[3],c.y1)],[1e9,1e9,-1,-1]);
+      // lettera dentro un riquadro (es. [A] = sezione del brano): non è una sigla
+      const frame=(x)=>{ let k=0; for(let y=b[1];y<=b[3];y++) for(let dx=-1;dx<=1;dx++) if(dark[y*W+x+dx]){k++;break;} return k>=(b[3]-b[1]+1)*0.85; };
+      let L=false,R=false; for(let d=2;d<=Math.round(sp*1.8)&&!(L&&R);d++){ if(!L&&frame(b[0]-d)) L=true; if(!R&&frame(b[2]+d)) R=true; }
+      if(L&&R) continue;
       return Object.assign(best.p,{box:b,conf:best.avg});}
   }
   return null;
@@ -1684,8 +1703,9 @@ function showChord(g){
 function groupOf(i){return seq.find(g=>g.some(n=>notes.indexOf(n)===i));}
 function drawOverlay(){
   const ov=$('ov'); ov.setAttribute('viewBox','0 0 '+(W||1)+' '+(H||1));
-  if(!loaded||(!S.showOv&&!S.showNames&&!measVisible())){ov.innerHTML='';return;}
-  let h=measVisible()?measSvg():'';
+  const addH=loaded?notes.filter(n=>n.rest&&n.added&&!n.del).map(n=>restGlyph(n.x,n.st.top,n.st.sp,n.dur,'#1c7ed6')).join(''):'';
+  if(!loaded||(!S.showOv&&!S.showNames&&!measVisible()&&!addH)){ov.innerHTML='';return;}
+  let h=addH+(measVisible()?measSvg():'');
   if(S.showNames) h+=namesSvg();
   if(!S.showOv){ov.innerHTML=h;return;}
   seq.forEach((g,i)=>g.forEach(n=>{const r=n.st.sp*0.75;
@@ -1956,9 +1976,25 @@ function play(){
   if(!seq.length){toast('Non ho trovato note da suonare in questa pagina',3500);return;}
   if(playIdx>=seq.length) playIdx=0;
   if(mRange){ if(!inRange(seq[playIdx])) playIdx=rangeStart(); if(playIdx<0){toast('Non trovo note in queste battute',3000);playIdx=0;return;} }
-  playing=true; setPlayUI(); tick();
+  playing=true; beatAcc=0; setPlayUI(); tick();
 }
-function pause(){playing=false;clearTimeout(playTimer);setPlayUI();}
+function pause(){playing=false;clearTimeout(playTimer);metroTimers.forEach(clearTimeout);metroTimers=[];setPlayUI();}
+/* ---------- tic del metronomo ---------- */
+let beatAcc=0, metroTimers=[];
+function metroClick(strong){ try{ const a=audio(), t=a.currentTime, o=a.createOscillator(), g=a.createGain(), v=(S.metroVol??60)/100;
+  if(v<=0) return; o.type='square'; o.frequency.value=strong?1760:1175;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.35*v*v+0.0002,t+0.002); g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t+0.06);}catch(e){} }
+function metroBeats(beats,spb){
+  if(!S.metro) { beatAcc+=beats; return; }
+  for(let k=Math.ceil(beatAcc-1e-6);k<beatAcc+beats-1e-6;k++){ const off=(k-beatAcc)*spb;
+    metroTimers.push(setTimeout(()=>{ if(playing) metroClick(false); },Math.max(0,off))); }
+  beatAcc+=beats; if(metroTimers.length>64) metroTimers=metroTimers.slice(-32);
+}
+function setMetro(v){S.metro=v;save();$('metroBtn').classList.toggle('on',v);}
+$('metroBtn').onclick=()=>{setMetro(!S.metro); toast(S.metro?'Tic del metronomo attivo':'Tic del metronomo spento',1500);};
+$('metroVol').oninput=e=>{S.metroVol=+e.target.value;save();};
+$('metroVol').onchange=()=>{ if(!playing) metroClick(false); };
 function stop(){pause();playIdx=0;ballHide();}
 async function tick(){
   if(!playing) return;
@@ -1972,7 +2008,7 @@ async function tick(){
   }
   const g=seq[playIdx];
   if(g[0].rest) showRest(notes.indexOf(g[0]));
-  else if(g.length>1&&g.sym){ const fr=showChord(g);
+  else if(g.sym){ const fr=showChord(g);
     // con almeno 3 note leggibili suono le note SCRITTE; con meno mi aiuto con la sigla e suono l'accordo intero
     const ns=g.filter(n=>!n.rest).sort((a,b)=>a.step-b.step);
     if(ns.length>=3) ns.forEach((n,i)=>setTimeout(()=>pluck(pitch(n.step,n.ov).sound,0.4*(g.vol||1)),i*22));
@@ -1993,6 +2029,7 @@ async function tick(){
   const beats=S.rhythm==='uguali'?1:(g.beats||Math.min(...g.map(n=>n.dur)));
   playIdx++;
   const wait=beats*60000/(S.bpm*(g.tf||1));
+  metroBeats(beats,60000/(S.bpm*(g.tf||1)));
   let nxt=seq[playIdx]; if(!nxt&&S.loop) nxt=seq[mRange?rangeStart():0]; else if(nxt&&mRange&&!inRange(nxt)) nxt=S.loop?seq[rangeStart()]:null;
   ballHop(g,nxt,wait);
   playTimer=setTimeout(tick,wait);
@@ -2339,6 +2376,7 @@ function pitch(step,ov){
 const accSym=a=>a>0?'♯':a<0?'♭':'';
 
 /* ---------- tocco sullo spartito ---------- */
+let lastTap=null;
 $('box').addEventListener('click',e=>{
   if(!loaded) return;
   const r=cv.getBoundingClientRect();
@@ -2350,6 +2388,8 @@ $('box').addEventListener('click',e=>{
     else { pickStage=0; $('measPick').classList.remove('on'); setRange(Math.min(pickA,m),Math.max(pickA,m)); closeMeasBar(); }
     return;
   }
+  const now=Date.now(), dbl=lastTap&&now-lastTap.t<450&&Math.hypot(e.clientX-lastTap.cx,e.clientY-lastTap.cy)<28;
+  lastTap=dbl?null:{t:now,cx:e.clientX,cy:e.clientY};
   const ri=notes.findIndex(n=>n.rest&&!n.del&&x>=n.box[0]-n.st.sp*0.4&&x<=n.box[2]+n.st.sp*0.4&&y>=n.box[1]-n.st.sp*0.4&&y<=n.box[3]+n.st.sp*0.4);
   if(ri>=0){ showRest(ri); const si=seqIndexOf(ri); if(si>=0){playIdx=si; if(playing){clearTimeout(playTimer);tick();}} return; }
   const st=detectStaff(Math.round(x),Math.round(y));
@@ -2361,7 +2401,9 @@ $('box').addEventListener('click',e=>{
   const ty=st.bottom-rf.step*st.sp/2; let bi=-1,bd=1e9;
   notes.forEach((n,i)=>{ if(n.del||n.rest) return; const dx=Math.abs(n.x-rf.x), dy=Math.abs(noteY(n)-ty);
     if(dx<st.sp*0.9&&dy<st.sp*0.6){const d=dx+dy*2; if(d<bd){bd=d;bi=i;}} });
-  if(bi<0&&(!rf.found||!ledgersOk(st,rf.x,rf.step))){toast('Qui non vedo una nota: scritte e segni vengono ignorati',2500);return;}
+  // doppio tocco dove non c'è una nota del brano: la aggiungo
+  if(bi<0&&dbl){ restIdx=null; $('addBtn').onclick(); return; }
+  if(bi<0&&(!rf.found||!ledgersOk(st,rf.x,rf.step))){toast('Qui non vedo una nota (tocca due volte per aggiungerla)',2500);return;}
   restIdx=null;
   if(bi>=0){const n=notes[bi]; cur={st:n.st,step:n.step,x:n.x,ov:n.ov,pos:null,idx:bi};
     const si=seqIndexOf(bi); if(si>=0){ playIdx=si; if(playing){clearTimeout(playTimer);tick();return;} } }
@@ -2369,6 +2411,45 @@ $('box').addEventListener('click',e=>{
 });
 let restIdx=null;
 const DUR_NAME={0.5:'croma',0.75:'croma puntata',1:'semiminima',1.5:'semiminima puntata',2:'minima',3:'minima puntata',4:'semibreve'};
+/* ---------- pause aggiunte a mano (tenendo premuto sullo spartito) ---------- */
+function restGlyph(x,top,sp,dur,col){
+  const f=v=>v.toFixed(1), w=Math.max(1.2,sp*0.14);
+  let h='';
+  if(dur>=4) h='<rect x="'+f(x-sp*0.6)+'" y="'+f(top+sp)+'" width="'+f(sp*1.2)+'" height="'+f(sp*0.5)+'" fill="'+col+'"/>';
+  else if(dur>=2) h='<rect x="'+f(x-sp*0.6)+'" y="'+f(top+sp*1.5)+'" width="'+f(sp*1.2)+'" height="'+f(sp*0.5)+'" fill="'+col+'"/>';
+  else if(dur>=1) h='<path d="M'+f(x-sp*0.2)+' '+f(top+sp*0.5)+' L'+f(x+sp*0.35)+' '+f(top+sp*1.3)+' L'+f(x-sp*0.15)+' '+f(top+sp*2)+' L'+f(x+sp*0.35)+' '+f(top+sp*2.7)+' Q'+f(x-sp*0.5)+' '+f(top+sp*2.6)+' '+f(x+sp*0.1)+' '+f(top+sp*3.5)+'" fill="none" stroke="'+col+'" stroke-width="'+f(w*1.6)+'" stroke-linejoin="round"/>';
+  else { const n=dur>=0.5?1:2;
+    h='<line x1="'+f(x+sp*0.4)+'" y1="'+f(top+sp*1.4)+'" x2="'+f(x-sp*0.1)+'" y2="'+f(top+sp*(n===1?3:3.6))+'" stroke="'+col+'" stroke-width="'+f(w)+'"/>';
+    for(let i=0;i<n;i++) h+='<circle cx="'+f(x-sp*0.2-i*sp*0.25)+'" cy="'+f(top+sp*(1.55+i))+'" r="'+f(sp*0.22)+'" fill="'+col+'"/><path d="M'+f(x-sp*0.2-i*sp*0.25)+' '+f(top+sp*(1.75+i))+' Q'+f(x+sp*0.1)+' '+f(top+sp*(1.85+i))+' '+f(x+sp*0.4-i*sp*0.25)+' '+f(top+sp*(1.4+i))+'" fill="none" stroke="'+col+'" stroke-width="'+f(w)+'"/>'; }
+  return '<rect x="'+f(x-sp*0.8)+'" y="'+f(top-sp*0.2)+'" width="'+f(sp*1.6)+'" height="'+f(sp*4.4)+'" rx="'+f(sp*0.3)+'" fill="#1c7ed6" fill-opacity=".1"/>'+h;
+}
+const REST_OPTS=[[4,'Semibreve'],[2,'Minima'],[1,'Semiminima'],[0.5,'Croma'],[0.25,'Semicroma']];
+if(!DUR_NAME[0.25]) DUR_NAME[0.25]='semicroma';
+(function(){
+  const menu=document.createElement('div'); menu.id='restMenu'; document.body.appendChild(menu);
+  menu.innerHTML='<div class="rt">Aggiungi una pausa qui:</div>'+REST_OPTS.map(([d,t])=>'<button data-d="'+d+'"><svg viewBox="0 0 24 48" width="20" height="40"><g stroke="#999" stroke-width=".8">'+[0,1,2,3,4].map(i=>'<line x1="0" x2="24" y1="'+(4+i*10)+'" y2="'+(4+i*10)+'"/>').join('')+'</g>'+restGlyph(12,4,10,d,'currentColor').replace(/<rect[^>]*fill-opacity[^>]*\/>/,'')+'</svg>'+t+'</button>').join('');
+  let at=null, timer=null, sx=0, sy=0; window.__longAt=0;
+  const box=$('box'), busy=()=>document.body.classList.contains('moving')||document.body.classList.contains('erasing');
+  const close=()=>{menu.classList.remove('open');at=null;};
+  box.addEventListener('contextmenu',e=>e.preventDefault());
+  box.addEventListener('pointerdown',e=>{ if(!loaded||busy()||(e.pointerType==='mouse'&&e.button!==0)) return; sx=e.clientX; sy=e.clientY; clearTimeout(timer);
+    timer=setTimeout(()=>{ timer=null; const r=cv.getBoundingClientRect(); const x=(sx-r.left)*W/r.width, y=(sy-r.top)*H/r.height;
+      if(!scanned) scanScore();
+      let ci=-1,bd=1e9; chains.forEach((c,i)=>{const st=staffAt(c,x); const d=Math.max(0,st.top-y,y-st.bottom); if(d<st.sp*3&&d<bd){bd=d;ci=i;}});
+      if(ci<0){toast('Tieni premuto sul pentagramma, dove vuoi la pausa',2500);return;}
+      window.__longAt=Date.now(); at={x,ci}; if(navigator.vibrate) navigator.vibrate(20);
+      menu.classList.add('open'); const mw=menu.offsetWidth, mh=menu.offsetHeight;
+      menu.style.left=Math.max(6,Math.min(innerWidth-mw-6,sx-mw/2))+'px'; menu.style.top=Math.max(6,Math.min(innerHeight-mh-6,sy+12))+'px'; },550); });
+  const cancel=e=>{ if(timer&&(!e||e.type!=='pointermove'||Math.hypot(e.clientX-sx,e.clientY-sy)>10)){clearTimeout(timer);timer=null;} };
+  box.addEventListener('pointermove',cancel); box.addEventListener('pointerup',()=>cancel()); box.addEventListener('pointercancel',()=>cancel());
+  box.addEventListener('click',e=>{ if(Date.now()-window.__longAt<800){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
+  document.addEventListener('pointerdown',e=>{ if(menu.classList.contains('open')&&!menu.contains(e.target)) close(); },true);
+  menu.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||!at) return;
+    const d=+b.dataset.d, st=staffAt(chains[at.ci],at.x), sp=st.sp;
+    notes.push({x:at.x,rest:true,dur:d,st,chain:at.ci,added:true,box:[at.x-sp*0.7,st.top+sp*0.4,at.x+sp*0.7,st.top+sp*3.6]});
+    close(); buildSeq(); const i=notes.length-1; showRest(i); const si=seqIndexOf(i); if(si>=0&&!playing) playIdx=si;
+    toast('Pausa di '+DUR_NAME[d]+' aggiunta ✔',1800); });
+})();
 function showRest(i){
   const n=notes[i]; cur=null; restIdx=i;
   const b=n.box, m=$('marker');
@@ -2964,7 +3045,7 @@ function setChordMode(m){S.chordNames=m;save();document.querySelectorAll('[data-
 document.querySelectorAll('[data-chm]').forEach(b=>{b.onclick=()=>setChordMode(b.dataset.chm); b.classList.toggle('on',b.dataset.chm===chordMode());});
 function setDyn(v){S.dyn=v;save();$('dynOn').classList.toggle('on',v);$('dynOff').classList.toggle('on',!v);if(loaded&&scanned)buildSeq();}
 $('dynOn').onclick=()=>setDyn(true); $('dynOff').onclick=()=>setDyn(false); $('dynOn').classList.toggle('on',S.dyn!==false); $('dynOff').classList.toggle('on',S.dyn===false);
-applyPanelH(); applyLook(); refreshZoneUI(); setBpm(S.bpm); setOnlyNeck(!!S.onlyNeck); $('rhythm').value=S.rhythm; soundLabel(); document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===S.sound)); $('meterSel').value=S.meter||'auto'; $('namesBtn').onclick=()=>setNames(!S.showNames); $('mNames').onclick=()=>setNames(!S.showNames); ['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',!!S.showNames)); $('namesOn').classList.toggle('on',!!S.showNames); $('namesOff').classList.toggle('on',!S.showNames); $('loopBtn').classList.toggle('on',S.loop); $('ovBtn').classList.toggle('on',S.showOv);
+applyPanelH(); applyLook(); refreshZoneUI(); setBpm(S.bpm); setMetro(!!S.metro); $('metroVol').value=S.metroVol??60; setOnlyNeck(!!S.onlyNeck); $('rhythm').value=S.rhythm; soundLabel(); document.querySelectorAll('[data-sound]').forEach(b=>b.classList.toggle('on',b.dataset.sound===S.sound)); $('meterSel').value=S.meter||'auto'; $('namesBtn').onclick=()=>setNames(!S.showNames); $('mNames').onclick=()=>setNames(!S.showNames); ['namesBtn','mNames'].forEach(id=>$(id).classList.toggle('on',!!S.showNames)); $('namesOn').classList.toggle('on',!!S.showNames); $('namesOff').classList.toggle('on',!S.showNames); $('loopBtn').classList.toggle('on',S.loop); $('ovBtn').classList.toggle('on',S.showOv);
 </script>
 </body>
 </html>
