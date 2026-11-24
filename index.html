@@ -433,7 +433,7 @@ if(!(+S.bpm>=20&&+S.bpm<=300)) S.bpm=DEF.bpm; else S.bpm=+S.bpm;
 // errori mostrati sullo schermo (così si capisce cosa non va nell'app)
 let _errN=0;
 function showErr(m){ if(_errN++>4) return; try{ toast('⚠ Errore: '+String(m).slice(0,160),6000); }catch(e){} }
-window.addEventListener('error',e=>showErr(e.message||e.error));
+window.addEventListener('error',e=>{ const st=(e.error&&e.error.stack||'').split('\n').slice(1,3).map(x=>x.trim().replace(/\(?(https?|file):\/\/[^)]*?:(\d+):(\d+)\)?/,'riga $2')).join(' ← '); showErr((e.message||e.error)+' · riga '+e.lineno+(st?' · '+st:'')); });
 window.addEventListener('unhandledrejection',e=>showErr((e.reason&&e.reason.message)||e.reason));
 function save(){try{localStorage.setItem('spartitoChitarra',JSON.stringify(S));}catch(e){}}
 
@@ -2177,7 +2177,7 @@ function chordVoicing(p,z){
 }
 const shapeText=f=>f.slice().reverse().map(v=>v<0?'x':v).join(' ');
 function strum(frets,v=1){
-  frets.map((f,s)=>({f,s})).filter(o=>o.f>=0).sort((a,b)=>b.s-a.s).forEach((o,i)=>setTimeout(()=>pluck(OPEN[o.s]+o.f,0.26*v),i*28));
+  frets.map((f,s)=>({f,s})).filter(o=>o.f>=0).sort((a,b)=>b.s-a.s).forEach((o,i)=>setTimeout(()=>pluck(OPEN[o.s]+o.f,0.26*v),i*SWEEP_MS));
 }
 let chordShown=null;
 // posizione sul manico delle note SCRITTE dell'accordo: ogni nota su una corda diversa,
@@ -2198,9 +2198,9 @@ function writtenVoicing(g){
   const frets=[-1,-1,-1,-1,-1,-1]; for(const u of best.used) frets[u.s]=u.f; return frets;
 }
 function showChord(g){
-  const sym=g.sym, top=g.reduce((a,b)=>b.step>a.step?b:a);
+  const sym=g.sym||g._ps, top=g.reduce((a,b)=>b.step>a.step?b:a);
   // meno di 3 note leggibili: mi aiuto con la sigla (posizione completa dell'accordo)
-  const few=g.filter(n=>!n.rest).length<3;
+  const few=!g._ps&&g.filter(n=>!n.rest).length<3;
   const wv=few?null:writtenVoicing(g), frets=wv||chordVoicing(sym,zone());
   const names=g.filter(n=>!n.rest).sort((a,b)=>a.step-b.step).map(n=>noteLabel(n)).join(' ');
   cur=null; restIdx=null; chordShown=g;
@@ -2738,8 +2738,16 @@ async function tickBody(){
   else if(g.sym){ const fr=showChord(g);
     // con almeno 3 note leggibili suono le note SCRITTE; con meno mi aiuto con la sigla e suono l'accordo intero
     const ns=g.filter(n=>!n.rest).sort((a,b)=>a.step-b.step);
-    if(ns.length>=3) ns.forEach((n,i)=>setTimeout(()=>pluck(pitch(n.step,n.ov).sound,0.4*(g.vol||1)*mixMain()),i*22));
-    else if(fr) strum(fr,(g.vol||1)*mixMain()); }
+    if(ns.length>=3) ns.slice().sort((a,b)=>pitch(a.step,a.ov).sound-pitch(b.step,b.ov).sound).forEach((n,i)=>setTimeout(()=>pluck(pitch(n.step,n.ov).sound,0.4*(g.vol||1)*mixMain()),i*SWEEP_MS));
+    else if(fr) strum(fr,(g.vol||1)*mixMain());
+    handsChord(fr); }
+  else if(g.filter(n=>!n.rest).length>=2&&writtenVoicing(g)){
+    // più note insieme senza sigla: le suono TUTTE e la mano destra le pizzica tutte
+    const ns=g.filter(n=>!n.rest).sort((a,b)=>a.step-b.step), t=chordText(g);
+    g._ps={text:t||ns.map(n=>noteLabel(n)).join('-'),it:t||ns.map(n=>noteLabel(n)).join(' ')};
+    let fr=null; try{ fr=showChord(g); } finally{ delete g._ps; }
+    ns.slice().sort((a,b)=>pitch(a.step,a.ov).sound-pitch(b.step,b.ov).sound).forEach((n,i)=>setTimeout(()=>pluck(pitch(n.step,n.ov).sound,0.4*(g.vol||1)*mixMain()),i*SWEEP_MS));
+    handsChord(fr); }
   else{
     // più note insieme senza sigla leggibile: suono solo la nota più alta
     const top=g.reduce((a,b)=>b.step>a.step?b:a);
@@ -3356,8 +3364,8 @@ function drawFret(pos,sel,name,shape){
 }
 /* ---------- mani sul manico ---------- */
 // sinistra: posizioni fisse 1-4 (I), 5-8 (V), 9-12 (IX): dito 1 sul primo tasto del gruppo
-// destra: indice (i) e medio (m) alternati
-const HS={pos:1,act:-1,str:0,lx:[0,0,0,0],ly:[0,0,0,0],ty:[0,0,0,0],r:[{y:0},{y:0}],rAct:-1,rNext:0,rT0:-1e9,rStr:0,vib:null,raf:0,init:false};
+// destra: indice (i) e medio (m) alternati; negli accordi il pollice (p) scorre su tutte le corde da suonare
+const HS={pos:1,act:-1,str:0,lx:[0,0,0,0],ly:[0,0,0,0],ty:[0,0,0,0],r:[{y:0},{y:0},{y:0},{y:0}],ch:null,rAct:-1,rNext:0,rT0:-1e9,rStr:0,vib:null,raf:0,init:false};
 const SKIN='#f2c9a5', SKIN_D='#c98d66', NAIL='#fbe3d6';
 function handsTarget(q){
   const lift=TOPY-32;
@@ -3366,8 +3374,14 @@ function handsTarget(q){
   if(!HS.init){ HS.init=true; for(let i=0;i<4;i++){HS.ly[i]=HS.ty[i];} HS.r.forEach(f=>f.y=lift-8); }
 }
 function handsPluck(q){ if(S.hands===false||!q) return;
-  HS.rAct=HS.rNext; HS.rNext=1-HS.rNext; HS.rT0=performance.now(); HS.rStr=q.s;
-  HS.vib={s:q.s,x0:q.f>0?fx(q.f):NUT,t0:performance.now()}; handsRun(); }
+  HS.ch=null; HS.rAct=1+HS.rNext; HS.rNext=1-HS.rNext; HS.rT0=performance.now(); HS.rStr=q.s;
+  HS.vib={t0:performance.now(),list:[{s:q.s,x0:q.f>0?fx(q.f):NUT}]}; handsRun(); }
+// accordo: un solo dito (il pollice) scorre su tutte le corde da suonare, dalla più grave alla più acuta
+const SWEEP_MS=22;
+function handsChord(fr){ if(S.hands===false||!fr) return;
+  const ss=fr.map((f,s)=>f>=0?s:-1).filter(s=>s>=0).sort((a,b)=>b-a); if(!ss.length) return;
+  HS.ch=ss; HS.rAct=-1; HS.rT0=performance.now();
+  HS.vib={t0:performance.now(),list:ss.map(s=>({s,x0:fr[s]>0?fx(fr[s]):NUT}))}; handsRun(); }
 function fingerSvg(x,tipY,w,label,active,lead){
   const r=w/2, y0=4, len=tipY-y0;
   let h='<g opacity="'+(active?1:.55)+'" filter="url(#hsh)"><path d="M'+(x-r)+' '+y0+' L'+(x-r)+' '+(tipY-r)+' A'+r+' '+r+' 0 0 0 '+(x+r)+' '+(tipY-r)+' L'+(x+r)+' '+y0+'Z" fill="'+SKIN+'" stroke="'+SKIN_D+'" stroke-width="2"/>';
@@ -3384,21 +3398,25 @@ function handsFrame(now){
     if(!HS.lx[i]) HS.lx[i]=tx;
     const dx=tx-HS.lx[i], dy=HS.ty[i]-HS.ly[i];
     HS.lx[i]+=dx*.28; HS.ly[i]+=dy*.32; if(Math.abs(dx)>.5||Math.abs(dy)>.5) moving=true; else {HS.lx[i]=tx;HS.ly[i]=HS.ty[i];} }
-  const dt=now-HS.rT0, sY=sy(HS.rStr);
-  HS.r.forEach((F,k)=>{ let ty=lift-8, sp=.18;
-    if(k===HS.rAct&&dt<260){ ty=dt<70?sY+4:sY-GAP*.75; sp=.55; moving=true; }
+  const dt=now-HS.rT0, ch=HS.ch, swD=ch?Math.max(60,SWEEP_MS*(ch.length-1)+40):0;
+  const tgt=k=>ch?(k===0?ch[0]:null):(k===HS.rAct?HS.rStr:null);
+  HS.r.forEach((F,k)=>{ let ty=lift-8, sp=.18; const st=tgt(k);
+    if(ch&&k===0&&dt<swD+220){ moving=true;
+      if(dt<swD){ const y0=sy(ch[0]), y1=sy(ch[ch.length-1]); F.y=y0+(y1-y0)*(dt/swD)+4; return; }   // il dito scorre sulle corde
+      ty=sy(ch[ch.length-1])-GAP*.75; sp=.5; }
+    else if(!ch&&st!=null&&dt<260){ const sY=sy(st); ty=dt<70?sY+4:sY-GAP*.75; sp=.55; moving=true; }
     F.y+=(ty-F.y)*sp; if(Math.abs(ty-F.y)>.5) moving=true; else F.y=ty; });
   let h='';
   const ord=[0,1,2,3].sort((a,b)=>(a===HS.act)-(b===HS.act));
   for(const i of ord) h+=fingerSvg(HS.lx[i],HS.ly[i],i===HS.act?28:24,i+1,i===HS.act,'pad');
-  const rx=[RHX-24,RHX+24], rOrd=[0,1].sort((a,b)=>(a===HS.rAct)-(b===HS.rAct));
-  for(const k of rOrd) h+=fingerSvg(rx[k],HS.r[k].y,26,k?'m':'i',k===HS.rAct&&dt<700,'nail');
+  const rx=[RHX-60,RHX-20,RHX+20,RHX+60], LB=['p','i','m','a'], on=k=>tgt(k)!=null&&dt<700, rOrd=[0,1,2,3].sort((a,b)=>on(a)-on(b));
+  for(const k of rOrd) h+=fingerSvg(rx[k],HS.r[k].y,k?22:27,LB[k],on(k),'nail');
   g.innerHTML=h;
   const v=$('vib');
   if(v&&HS.vib){ const vt=(now-HS.vib.t0)/1000;
-    if(vt<1.6){ moving=true; const A=6*Math.exp(-vt*2.6), x0=HS.vib.x0, x1=BRIDGE, y=sy(HS.vib.s), ph=Math.sin(vt*90);
-      let d='M'+x0+' '+y; for(let i=1;i<=24;i++){const x=x0+(x1-x0)*i/24; d+=' L'+x.toFixed(1)+' '+(y+A*ph*Math.sin(Math.PI*i/24)).toFixed(1);}
-      v.setAttribute('d',d); v.setAttribute('stroke',S.acc); v.setAttribute('stroke-width',2+HS.vib.s*.55); v.setAttribute('opacity',Math.min(1,.4+A/6)); }
+    if(vt<1.6){ moving=true; const A=6*Math.exp(-vt*2.6), x1=BRIDGE, ph=Math.sin(vt*90); let d='';
+      for(const o of HS.vib.list){ const x0=o.x0, y=sy(o.s); d+='M'+x0+' '+y; for(let i=1;i<=24;i++){const x=x0+(x1-x0)*i/24; d+=' L'+x.toFixed(1)+' '+(y+A*ph*Math.sin(Math.PI*i/24)).toFixed(1);} }
+      v.setAttribute('d',d); v.setAttribute('stroke',S.acc); v.setAttribute('stroke-width',HS.vib.list.length>1?3:2+HS.vib.list[0].s*.55); v.setAttribute('opacity',Math.min(1,.4+A/6)); }
     else { HS.vib=null; v.setAttribute('d',''); } }
   if(moving||dt<700) handsRun();
 }
