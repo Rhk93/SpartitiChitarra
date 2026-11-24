@@ -425,6 +425,12 @@ const DEF={main:'#6b3f1f',acc:'#d9480f',bg:'#f6f1e7',style:'flat',font:0,fs:1,zo
 let S=Object.assign({},DEF);
 try{const s=JSON.parse(localStorage.getItem('spartitoChitarra')||'null');if(s)S=Object.assign(S,s);}catch(e){}
 {const old={p2:[2,5],p4:[4,7],p5:[5,8],p7:[7,10],p9:[9,12]}[S.zone]; if(old){S.zone='custom';S.zFrom=old[0];S.zTo=old[1];}}
+if(!(+S.bpm>=20&&+S.bpm<=300)) S.bpm=DEF.bpm; else S.bpm=+S.bpm;
+// errori mostrati sullo schermo (così si capisce cosa non va nell'app)
+let _errN=0;
+function showErr(m){ if(_errN++>4) return; try{ toast('⚠ Errore: '+String(m).slice(0,160),6000); }catch(e){} }
+window.addEventListener('error',e=>showErr(e.message||e.error));
+window.addEventListener('unhandledrejection',e=>showErr((e.reason&&e.reason.message)||e.reason));
 function save(){try{localStorage.setItem('spartitoChitarra',JSON.stringify(S));}catch(e){}}
 
 function hexToRgb(h){h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16));}
@@ -2228,7 +2234,8 @@ function nameItems(){
 const CH_TPL=[[[0,4,7],''],[[0,3,7],'m'],[[0,4,7,10],'7'],[[0,3,7,10],'m7'],[[0,4,7,11],'maj7'],[[0,3,6],'dim'],[[0,4,8],'aug'],[[0,2,7],'sus2'],[[0,5,7],'sus4'],
   [[0,3,6,10],'m7b5'],[[0,3,6,9],'dim7'],[[0,4,7,9],'6'],[[0,3,7,9],'m6'],[[0,4,10],'7'],[[0,3,10],'m7'],[[0,4,11],'maj7'],[[0,5,7,10],'7sus4'],[[0,4,7,10,14],'9'],[[0,4,7,14],'add9']];
 const CHN=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
-function chordText(g){
+function chordText(g){ try{ return chordText0(g); }catch(e){ return null; } }
+function chordText0(g){
   if(!g||g[0].rest) return null;
   if(g.sym&&g.sym.text) return g.sym.text;
   const ms=g.filter(n=>!n.rest).map(n=>pitch(n.step,n.ov).sound); if(ms.length<3) return null;
@@ -2630,6 +2637,10 @@ $('metroVol').oninput=e=>{S.metroVol=+e.target.value;save();};
 $('metroVol').onchange=()=>{ if(!playing) metroClick(false); };
 function stop(){pause();playIdx=0;ballHide();}
 async function tick(){
+  try{ await tickBody(); }
+  catch(e){ console.error(e); showErr(e.message); if(playing){ playIdx++; clearTimeout(playTimer); playTimer=setTimeout(tick,300); } }
+}
+async function tickBody(){
   if(!playing) return;
   if(mRange&&(playIdx>=seq.length||!inRange(seq[playIdx]))){
     if(S.loop) playIdx=rangeStart();
@@ -2893,8 +2904,10 @@ function showFolderList(mg,list,append,url){
 async function finishLink(files,append,url){
   linkMsg('Apro lo spartito…');
   rememberLink(url);
-  await openFiles(files,append&&loaded);
-  if(loaded){ linkMsg('Fatto ✔'); $('linkModal').classList.remove('open');
+  $('linkModal').classList.remove('open');      // chiudo subito: così si vede la scelta dello strumento
+  try{ await openFiles(files,append&&loaded); }
+  catch(e){ $('linkModal').classList.add('open'); throw e; }
+  if(loaded){ linkMsg('Fatto ✔');
     if(/^https:/.test(location.protocol)&&!window.claude){ shareUrl=location.origin+location.pathname+'?apri='+encodeURIComponent(url); } }
 }
 let shareUrl='';
