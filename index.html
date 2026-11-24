@@ -17,6 +17,7 @@ header{background:var(--main);color:#fff;padding:.5rem .6rem;display:flex;flex-w
 header h1{font-size:1.45rem;margin:0;font-weight:800;white-space:nowrap}
 .ttl{display:flex;flex-direction:column;margin:0 .5rem 0 .1rem;line-height:1.15}
 #copyEmpty{display:none}
+body.noScore #hOpen,body.noScore #myBtn,body.noScore #linkBtn{display:none!important}
 body.noScore #copyEmpty{display:block;position:fixed;left:0;right:0;bottom:.6rem;text-align:center;font-size:.8rem;opacity:.7}
 .copy{font-size:.65rem;opacity:.8;white-space:nowrap;margin-left:1.6rem}
 button,select,.btn,input{font:inherit}
@@ -211,7 +212,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
 <header>
   <div class="ttl"><h1><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg> Spartito → Chitarra</h1></div>
   <span class="grp hplay"><button id="hPlay" title="Play / Pausa" class="hp-main">▶</button><button id="hStop" title="Stop">⏹</button></span>
-  <label class="btn">📂 Apri<input type="file" id="file" accept="application/pdf,image/*,.musicxml,.xml,.mxl,.mscz,.mscx,.musx" multiple></label>
+  <label class="btn" id="hOpen">📂 Apri<input type="file" id="file" accept="application/pdf,image/*,.musicxml,.xml,.mxl,.mscz,.mscx,.musx" multiple></label>
   <button id="myBtn" title="Apri l'elenco dei miei brani (cartella Mega)">🎼 Brani</button>
   <button id="linkBtn" title="Apri un PDF o una foto da un link (Mega, Google Drive, Dropbox, OneDrive…)">🔗 Link</button>
   <label class="btn" id="addPageBtn" style="display:none" title="Aggiungi altre pagine (PDF o foto) in fondo allo spartito">➕ Pagine<input type="file" id="fileAdd" accept="application/pdf,image/*,.musicxml,.xml,.mxl,.mscz,.mscx,.musx" multiple></label>
@@ -2262,14 +2263,16 @@ function nameItems(){
 }
 // sigla di un gruppo: quella scritta sullo spartito, altrimenti la ricavo dalle note (almeno 3 suoni diversi)
 const CH_TPL=[[[0,4,7],''],[[0,3,7],'m'],[[0,4,7,10],'7'],[[0,3,7,10],'m7'],[[0,4,7,11],'maj7'],[[0,3,6],'dim'],[[0,4,8],'aug'],[[0,2,7],'sus2'],[[0,5,7],'sus4'],
-  [[0,3,6,10],'m7b5'],[[0,3,6,9],'dim7'],[[0,4,7,9],'6'],[[0,3,7,9],'m6'],[[0,4,10],'7'],[[0,3,10],'m7'],[[0,4,11],'maj7'],[[0,5,7,10],'7sus4'],[[0,4,7,10,14],'9'],[[0,4,7,14],'add9']];
+  [[0,3,6,10],'m7b5'],[[0,3,6,9],'dim7'],[[0,4,7,9],'6'],[[0,3,7,9],'m6'],[[0,4,10],'7'],[[0,3,10],'m7'],[[0,4,11],'maj7'],[[0,5,7,10],'7sus4'],[[0,4,7,10,14],'9'],[[0,4,7,14],'add9'],
+  // accordi senza il 5° grado (es. Do-Mi-Do = Do maggiore)
+  [[0,4],''],[[0,3],'m'],[[0,4,9],'6'],[[0,3,9],'m6'],[[0,4,10,14],'9'],[[0,4,14],'add9']];
 const CHN=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
 function chordText(g){ try{ return chordText0(g); }catch(e){ return null; } }
 function chordText0(g){
   if(!g||g[0].rest) return null;
   if(g.sym&&g.sym.text) return g.sym.text;
   const ms=g.filter(n=>!n.rest).map(n=>pitch(n.step,n.ov).sound); if(ms.length<3) return null;
-  const pcs=[...new Set(ms.map(x=>((x%12)+12)%12))]; if(pcs.length<3) return null;
+  const pcs=[...new Set(ms.map(x=>((x%12)+12)%12))]; if(pcs.length<2) return null;   // es. Do-Mi-Do (manca il 5°) vale come Do
   const bass=((Math.min(...ms)%12)+12)%12;
   const roots=[bass,...pcs.filter(x=>x!==bass)];
   for(const r of roots){ const iv=pcs.map(x=>(x-r+12)%12).sort((a,b)=>a-b);
