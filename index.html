@@ -14,8 +14,10 @@ html{font-size:calc(16px * var(--fs))}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font)}
 body{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
 header{background:var(--main);color:#fff;padding:.5rem .6rem;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
-header h1{font-size:1rem;margin:0;font-weight:800;white-space:nowrap}
+header h1{font-size:1.45rem;margin:0;font-weight:800;white-space:nowrap}
 .ttl{display:flex;flex-direction:column;margin:0 .5rem 0 .1rem;line-height:1.15}
+#copyEmpty{display:none}
+body.noScore #copyEmpty{display:block;position:fixed;left:0;right:0;bottom:.6rem;text-align:center;font-size:.8rem;opacity:.7}
 .copy{font-size:.65rem;opacity:.8;white-space:nowrap;margin-left:1.6rem}
 button,select,.btn,input{font:inherit}
 button,select,.btn{font-size:.875rem;border:0;border-radius:.6rem;padding:.45rem .7rem;background:#fff;color:var(--ink);cursor:pointer;line-height:1.1}
@@ -207,7 +209,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
 </head>
 <body class="noScore">
 <header>
-  <div class="ttl"><h1><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg> Spartito → Chitarra</h1><span class="copy">Copyright © Ignazio Paolicelli</span></div>
+  <div class="ttl"><h1><svg class="gtr" viewBox="0 0 40 40" width="1.2em" height="1.2em" style="vertical-align:-.22em" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(42 20 20) translate(10 0)"><rect x="6.6" y="0.6" width="6.8" height="7.4" rx="1.3" fill="#4a2a10"/><rect x="8" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><rect x="10.7" y="1.8" width="1.3" height="5" rx=".6" fill="#1e1208"/><circle cx="5.6" cy="2.8" r=".9" fill="#ddd"/><circle cx="5.6" cy="5.6" r=".9" fill="#ddd"/><circle cx="14.4" cy="2.8" r=".9" fill="#ddd"/><circle cx="14.4" cy="5.6" r=".9" fill="#ddd"/><rect x="8.4" y="7.6" width="3.2" height="14" fill="#5a3415"/><path d="M10 17.2c3.6 0 6.3 2.4 6.3 5.4 0 1.6-.8 2.7-.8 3.6 0 1.3 2.8 2.6 2.8 6.3 0 4.2-3.7 7.1-8.3 7.1s-8.3-2.9-8.3-7.1c0-3.7 2.8-5 2.8-6.3 0-.9-.8-2-.8-3.6 0-3 2.7-5.4 6.3-5.4z" fill="#e0a458" stroke="#7a4a1c" stroke-width=".9"/><circle cx="10" cy="25.2" r="2.9" fill="none" stroke="#7a4a1c" stroke-width=".7"/><circle cx="10" cy="25.2" r="2.2" fill="#2a170a"/><rect x="6.4" y="32" width="7.2" height="1.8" rx=".6" fill="#4a2a10"/><g stroke="#f4ead8" stroke-width=".28"><line x1="9" y1="1" x2="9" y2="32.6"/><line x1="10" y1="1" x2="10" y2="32.6"/><line x1="11" y1="1" x2="11" y2="32.6"/></g></g></svg> Spartito → Chitarra</h1></div>
   <span class="grp hplay"><button id="hPlay" title="Play / Pausa" class="hp-main">▶</button><button id="hStop" title="Stop">⏹</button></span>
   <label class="btn">📂 Apri<input type="file" id="file" accept="application/pdf,image/*,.musicxml,.xml,.mxl,.mscz,.mscx,.musx" multiple></label>
   <button id="myBtn" title="Apri l'elenco dei miei brani (cartella Mega)">🎼 Brani</button>
@@ -227,14 +229,14 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
     <span class="eSz"><button data-mvm="move" class="on">Sposta</button><button data-mvm="copy">Copia</button></span>
     <button id="mvUndo">↩ Annulla</button><button id="mvDone" class="okE">✓ Fatto</button></div>
   <div id="empty">
-    <h2>Tocca una nota, scopri dove si suona</h2>
-    <p>Apri uno spartito in <b>PDF</b> (tutte le pagine) o una o più <b>foto</b> (chiave di violino, come si scrive per chitarra). Poi tocca una nota: qui sotto vedrai la tastiera con la posizione esatta.</p>
-    <p style="font-size:.875rem;opacity:.8">Scegli l'<b>armatura di chiave</b> in alto (♯ o ♭) e, se la nota ha un'alterazione, usa i tasti ♭ ♮ ♯. Se la nota riconosciuta non è giusta, correggila con ▲ ▼. Con <span class="gearIn"><svg class="gear" viewBox="0 0 24 24" width="1.25em" height="1.25em" style="vertical-align:-.25em" aria-hidden="true"><path d="M20.35 9.96 L22.88 10.36 L22.88 13.64 L20.35 14.04 L19.35 16.46 L20.85 18.53 L18.53 20.85 L16.46 19.35 L14.04 20.35 L13.64 22.88 L10.36 22.88 L9.96 20.35 L7.54 19.35 L5.47 20.85 L3.15 18.53 L4.65 16.46 L3.65 14.04 L1.12 13.64 L1.12 10.36 L3.65 9.96 L4.65 7.54 L3.15 5.47 L5.47 3.15 L7.54 4.65 L9.96 3.65 L10.36 1.12 L13.64 1.12 L14.04 3.65 L16.46 4.65 L18.53 3.15 L20.85 5.47 L19.35 7.54Z M16 12 A4 4 0 1 0 8 12 A4 4 0 1 0 16 12Z" fill="currentColor" fill-rule="evenodd" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg></span> cambi colori e caratteri.</p>
+    <h2>Dallo spartito alle dita</h2>
+    <p>Apri una partitura e il programma ti fa vedere dove mettere le dita sulla chitarra.</p>
     <label class="btn big">📂 Apri spartito<input type="file" id="file2" accept="application/pdf,image/*,.musicxml,.xml,.mxl,.mscz,.mscx,.musx" multiple></label>
     <button class="big" id="myBtn2">🎼 I miei brani</button>
     <button class="big alt" id="linkBtn2">🔗 Apri da un link</button>
-    <button class="big alt" id="demoBtn2">Prova con un esempio</button>
+    <button class="big alt" id="demoBtn2" style="display:none">Prova con un esempio</button>
   </div>
+  <div id="copyEmpty">Copyright © Ignazio Paolicelli</div>
   <div id="box"><canvas id="cv"></canvas><svg id="ov" preserveAspectRatio="none"></svg><div id="marker"><span id="mlabel"></span></div><div id="ball"></div><div id="selRect"></div><canvas id="selFloat"></canvas><button id="selDel" title="Cancella l'area selezionata (tasto Canc)">✕</button></div>
 </div>
 
@@ -290,6 +292,7 @@ body.grad .sheet{background:linear-gradient(180deg,var(--card),color-mix(in srgb
   <div id="zoneBar"><svg class="ic" viewBox="0 0 30 20" width="1.9em" height="1.25em" style="vertical-align:-.3em" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="2" width="28" height="16" rx="1.5" fill="#7a4a1c"/><rect x="9.5" y="2" width="11" height="16" fill="#ffd43b" fill-opacity=".55"/><g stroke="#e9ecef" stroke-width="1.1"><line x1="3" y1="2" x2="3" y2="18"/><line x1="9.5" y1="2" x2="9.5" y2="18"/><line x1="15" y1="2" x2="15" y2="18"/><line x1="20.5" y1="2" x2="20.5" y2="18"/><line x1="26" y1="2" x2="26" y2="18"/></g><g stroke="#f1d9a8" stroke-width=".7"><line x1="1" y1="4.5" x2="29" y2="4.5"/><line x1="1" y1="7" x2="29" y2="7"/><line x1="1" y1="9.5" x2="29" y2="9.5"/><line x1="1" y1="12" x2="29" y2="12"/><line x1="1" y1="14.5" x2="29" y2="14.5"/><line x1="1" y1="17" x2="29" y2="17"/></g><rect x="9.5" y="2" width="11" height="16" fill="none" stroke="#d9480f" stroke-width="1.6"/></svg> Porzione del manico: <button id="zoneBtn" class="chip on" style="padding:.35rem .6rem"></button>
     <span id="fretTools"><button id="pdfBtn" title="Esporta lo spartito in PDF con i nomi delle note">📄 Esporta PDF</button><button id="imgBtn" title="Esporta lo spartito come immagine con i nomi delle note">🖼 Esporta immagine</button><button id="namesBtn" title="Scrivi il nome di ogni nota sotto il pentagramma">🔤 Nomi note</button><span class="nsz"><button id="nfMinus" title="Nomi più piccoli">A−</button><button id="nfPlus" title="Nomi più grandi">A+</button></span><button id="fretFit" title="Adatta la tastiera allo spazio">Adatta</button></span></div>
   <div id="msg"></div>
+  <footer id="copyFoot" style="text-align:center;font-size:.8rem;opacity:.7;padding:1rem 0 .4rem">Copyright © Ignazio Paolicelli</footer>
 </div>
 
 <!-- finestra: porzione del manico -->
@@ -676,10 +679,26 @@ function parseMusicXML(doc){
   const parts=[];
   for(const P of kids(root,'part')){
     let div=1, staves=1, octShift=new Map(), transp=0, tempo=null; const staffClef={};
-    const measures=[];
+    const measures=[]; let endN=null;
     for(const M of kids(P,'measure')){
       const m={num:M.getAttribute('number'),ev:[],harm:[],len:null,time:null,key:null,implicit:M.getAttribute('implicit')==='yes'};
-      let t=0, maxT=0, lastOn=0;
+      let t=0, maxT=0, lastOn=0; const rp={mk:[]}; m.rep=rp;
+      for(const bl of kids(M,'barline')){
+        const r=kid(bl,'repeat'); if(r){ if(r.getAttribute('direction')==='forward') rp.fw=1; else rp.bw=+(r.getAttribute('times')||2); }
+        const e=kid(bl,'ending'); if(e){ const ty=e.getAttribute('type'); if(ty==='start') endN=(e.getAttribute('number')||'1').split(/[ ,]+/).filter(Boolean).map(Number); else if(ty==='stop'||ty==='discontinue'){ if(endN) rp.end=endN; endN=null; rp._st=1; } } }
+      if(endN&&!rp._st) rp.end=endN;
+      for(const sd of M.getElementsByTagName('sound')){ const a=x=>sd.getAttribute(x);
+        if(a('segno')) rp.mk.push('segno'); if(a('coda')) rp.mk.push('coda'); if(a('tocoda')) rp.mk.push('codab'); if(a('fine')) rp.mk.push('fine');
+        if(a('dacapo')==='yes') rp.jump={to:'start'}; if(a('dalsegno')) rp.jump={to:'segno'}; }
+      for(const w of M.getElementsByTagName('words')){ const x=w.textContent.trim();
+        if(/^d\.?\s*c\.?/i.test(x)||/da\s*capo/i.test(x)) rp.jump=rp.jump||{to:'start',txt:x};
+        else if(/^d\.?\s*s\.?/i.test(x)||/dal\s*segno/i.test(x)) rp.jump=rp.jump||{to:'segno',txt:x};
+        else if(/^fine$/i.test(x)) rp.mk.push('fine');
+        else if(/^(to\s*coda|al\s*coda|alla\s*coda)/i.test(x)) rp.mk.push('codab');
+        else if(/^coda$/i.test(x)) rp.mk.push('coda'); }
+      if(M.getElementsByTagName('segno').length) rp.mk.push('segno');
+      if(M.getElementsByTagName('coda').length&&!rp.mk.includes('codab')) rp.mk.push(rp.mk.includes('coda')?'coda':'coda');
+      if(rp.jump&&rp.jump.txt){ rp.jump.until=/fine/i.test(rp.jump.txt)?'fine':/coda/i.test(rp.jump.txt)?'codab':null; rp.jump.cont=/coda/i.test(rp.jump.txt)?'coda':null; }
       for(const el of M.children){
         const tag=el.tagName;
         if(tag==='attributes'){
@@ -722,7 +741,7 @@ function parseMusicXML(doc){
       m.len=maxT; m.staves=staves;
       measures.push(m);
     }
-    parts.push({id:P.getAttribute('id'),name:names[P.getAttribute('id')]||'Parte',measures,staves:Math.max(1,...measures.map(m=>m.staves||1)),tempo});
+    parts.push({id:P.getAttribute('id'),name:names[P.getAttribute('id')]||'Parte',measures,rep:measures.map(m=>m.rep),staves:Math.max(1,...measures.map(m=>m.staves||1)),tempo});
   }
   return {title,composer,parts};
 }
@@ -746,9 +765,20 @@ function parseMSCX(doc){
   for(const part of parts){
     const ms=[];
     part.staffEls.forEach((S,si)=>{
-      let curT=null, curK=null, mi=0;
+      let curT=null, curK=null, mi=0, vLeft=0, vNums=null;
       for(const M of kids(S,'Measure')){
         const m=ms[mi]||(ms[mi]={num:String(mi+1),ev:[],harm:[],len:null,time:null,key:null});
+        if(si===0){ const rp={mk:[]};
+          if(M.getElementsByTagName('startRepeat').length) rp.fw=1;
+          const er=M.getElementsByTagName('endRepeat')[0]; if(er) rp.bw=+(er.textContent.trim()||2)||2;
+          for(const sp of M.getElementsByTagName('Spanner')){ if(sp.getAttribute('type')!=='Volta') continue; const v=kid(sp,'Volta'); if(!v) continue;
+            const nx=kid(sp,'next'); const ms_=nx?M.ownerDocument&&nx.getElementsByTagName('measures')[0]:null;
+            vNums=(kt(v,'endings','1')||'1').split(/[ ,]+/).filter(Boolean).map(Number); vLeft=ms_?Math.max(1,+ms_.textContent):1; }
+          if(vLeft>0){ rp.end=vNums; vLeft--; }
+          for(const mk of M.getElementsByTagName('Marker')){ const l=(kt(mk,'label','')||'').toLowerCase(); if(l) rp.mk.push(l==='varcoda'?'coda':l==='segno2'?'segno':l); }
+          for(const j of M.getElementsByTagName('Jump')){ rp.jump={to:(kt(j,'jumpTo','')||'start').toLowerCase(),until:(kt(j,'playUntil','')||'').toLowerCase()||null,cont:(kt(j,'continueAt','')||'').toLowerCase()||null};
+            if(rp.jump.to==='segno2') rp.jump.to='segno'; if(rp.jump.until==='end') rp.jump.until=null; }
+          m.rep=rp; }
         if(M.getAttribute('len')) m.len=frac(M.getAttribute('len'));
         const voices=kids(M,'voice').length?kids(M,'voice'):[M];
         voices.forEach((V,vi)=>{
@@ -787,7 +817,7 @@ function parseMSCX(doc){
       }
     });
     ms.forEach(m=>{ if(m.len==null) m.len=m.lenGuess||null; });
-    part.measures=ms; part.staves=part.staffEls.length; part.tempo=tempo; part.mscx=true; delete part.staffEls;
+    part.measures=ms; part.rep=ms.map(m=>m.rep||{mk:[]}); part.staves=part.staffEls.length; part.tempo=tempo; part.mscx=true; delete part.staffEls;
   }
   // MuseScore: i tie sulla nota di arrivo (versioni vecchie) li deduco io: nota uguale subito dopo una legatura
   return {title,composer,parts};
@@ -1789,7 +1819,7 @@ function buildSeq(){
   ok.sort((a,b)=>a.chain-b.chain||a.x-b.x);
   seq=[];
   for(const n of ok){const g=seq[seq.length-1]; if(g&&!n.rest&&!g[0].rest&&g[0].chain===n.chain&&n.x-g[0].x<n.st.sp*((n.side||g.some(m=>m.side))?1.45:0.8)) g.push(n); else seq.push([n]);}
-  if(xmlScore){ for(const g of seq) g.sym=g[0].rest?null:(g.find(n=>n.harm)||{}).harm||null; applyMeasures(); applyDynamics(); if($('meterSel')) refreshMeterUI(); refreshMeasUI(); drawOverlay(); return; }
+  if(xmlScore){ for(const g of seq) g.sym=g[0].rest?null:(g.find(n=>n.harm)||{}).harm||null; applyMeasures(); applyDynamics(); buildRepOrd(); if($('meterSel')) refreshMeterUI(); refreshMeasUI(); drawOverlay(); return; }
   // accordo di minime (o più lunghe): le note rilevate vicinissime, prima o dopo, sono false: suono solo l'accordo
   for(let i=0;i<seq.length;i++){ const g=seq[i]; if(g[0].rest) continue;
     const sp=g[0].st.sp, M=g.filter(n=>n.dur>=2); if(M.length<2) continue;
@@ -2511,12 +2541,13 @@ function mixBuild(sc,shown,staffN,R){
 }
 function mixMain(){ if(!mixer) return 1; const t=mixer.tracks.find(x=>x.shown); const m=(mixer.master??100)/100; return t?(t.on?t.vol/MIXDEF*m:0):m; }
 const gAbs=g=>{ if(!mixer||!g) return NaN; const n=g[0]; return (n.mi!=null&&n.col!=null)?(mixer.cum[n.mi]??NaN)+n.col:NaN; };
-function mixPlay(gi,beats,wait){
+function mixPlay(gi,beats,wait,ni){
   if(!mixer||!mixer.tracks.length) return;
   const g=seq[gi], a0=gAbs(g); if(!isFinite(a0)) return;
-  let a1=NaN; for(let j=gi+1;j<seq.length&&j<gi+8;j++){ const v=gAbs(seq[j]); if(isFinite(v)){ if(v>a0+1e-6) a1=v; break; } }
-  if(!isFinite(a1)||a1-a0>beats*4+1e-6) a1=a0+beats;
-  const span=a1-a0, k=wait/1000/span, ac=audio(), t0=ac.currentTime+0.02, m=(mixer.master??100)/100;
+  const mi=g[0].mi, nG=seq[ni], v=gAbs(nG), mEnd=mixer.cum[mi+1];
+  let a1=(isFinite(v)&&v>a0+1e-6&&nG[0].mi<=mi+1)?v:(isFinite(mEnd)&&mEnd>a0+1e-6?mEnd:a0+beats);
+  if(a1-a0>beats*4+1e-6) a1=a0+beats;
+  const span=a1-a0, k=S.rhythm==='uguali'?wait/1000/span:wait/1000/beats, ac=audio(), t0=ac.currentTime+0.02, m=(mixer.master??100)/100;
   for(const tr of mixer.tracks){ if(tr.shown&&!tr.notes.length) continue; if(!tr.on||tr.vol<=0) continue;
     const v=tr.vol/MIXDEF*m*(g.vol||1);
     for(const n of tr.notes){ if(n.a<a0-1e-6) continue; if(n.a>=a1-1e-6) break;
@@ -2591,6 +2622,53 @@ $('mixMaster').oninput=e=>{ if(!mixer) return; mixer.master=+e.target.value; S.m
 
 /* ---------- riproduzione ---------- */
 let playing=false, playTimer=null, playIdx=0;
+let repOrd=null, ordPos=0;   // ordine delle battute con ritornelli, finali, D.C., D.S.
+function repOrder(R){
+  const N=R.length; if(!N) return null;
+  if(!R.some(r=>r&&(r.fw||r.bw||r.end||r.jump))) return null;
+  const has=(i,l)=>R[i]&&R[i].mk&&R[i].mk.includes(l);
+  const find=l=>{ for(let i=0;i<N;i++) if(has(i,l)) return i; return -1; };
+  // per ogni gruppo di finali (1ª, 2ª…) il numero più alto: dopo D.C./D.S. si suona quello
+  const vMax=new Array(N).fill(0);
+  for(let i=0;i<N;){ if(!R[i]||!R[i].end){ i++; continue; } let j=i, mx=0; while(j<N&&R[j]&&R[j].end){ mx=Math.max(mx,...R[j].end); j++; } for(let k=i;k<j;k++) vMax[k]=mx; i=j; }
+  const out=[], times={}; let i=0, start=0, pass=1, done=false, jumped=false, until=null, cont=null, safe=0;
+  while(i<N&&safe++<N*12){
+    const r=R[i]||{};
+    if(r.fw&&!jumped&&start!==i){ start=i; pass=1; }
+    if(r.end){ const p=jumped?vMax[i]:pass; if(!r.end.includes(p)){ i++; continue; } }
+    else if(done){ pass=1; done=false; }
+    out.push(i);
+    if(jumped&&until&&has(i,until)){
+      if(until==='fine') break;
+      const c=cont?find(cont):-1; until=null; if(c<0) break; i=c; continue; }
+    if(r.bw&&!jumped){ const n=times[i]||1;
+      if(n<r.bw){ times[i]=n+1; pass=n+1; i=start; continue; }
+      times[i]=1; done=true; start=i+1; }
+    if(r.jump&&!jumped){ const to=r.jump.to==='segno'?find('segno'):0;
+      jumped=true; until=r.jump.until||(find('fine')>=0?'fine':find('codab')>=0?'codab':null); cont=r.jump.cont||(until==='codab'?'coda':null);
+      i=to<0?0:to; continue; }
+    i++;
+  }
+  return out.length?out:null;
+}
+function buildRepOrd(){
+  repOrd=null; ordPos=0;
+  if(!xmlScore||!xmlScore.sc) return;
+  const R=(xmlScore.sc.parts[0]&&xmlScore.sc.parts[0].rep)||[];
+  const order=repOrder(R); if(!order) return;
+  const first=new Map(); seq.forEach((g,i)=>{ const mi=g[0].mi; if(mi!=null&&!first.has(mi)) first.set(mi,i); });
+  repOrd={order,first};
+}
+// dopo il gruppo gi: quale gruppo viene dopo (segue i ritornelli)
+function nextAfter(gi,pos){
+  if(!repOrd) return {idx:gi+1,pos};
+  const mi=seq[gi][0].mi, n=seq[gi+1];
+  if(n&&n[0].mi===mi) return {idx:gi+1,pos};
+  for(let p=pos+1;p<repOrd.order.length;p++){ const t=repOrd.first.get(repOrd.order[p]); if(t!=null) return {idx:t,pos:p}; }
+  return {idx:seq.length,pos:repOrd.order.length};
+}
+function syncOrd(){ if(!repOrd||!seq[playIdx]) return; const mi=seq[playIdx][0].mi;
+  if(repOrd.order[ordPos]===mi) return; const p=repOrd.order.indexOf(mi); ordPos=p<0?0:p; }
 const TEMPO_NAMES=[[60,'Largo'],[76,'Adagio'],[108,'Andante'],[120,'Moderato'],[168,'Allegro'],[999,'Presto']];
 function setBpm(v){S.bpm=Math.max(30,Math.min(200,Math.round(v)));save();$('bpm').value=S.bpm;$('bpmVal').textContent=S.bpm+' · '+TEMPO_NAMES.find(t=>S.bpm<t[0])[1];}
 $('bpm').oninput=e=>setBpm(+e.target.value);
@@ -2615,6 +2693,7 @@ function play(){
   if(!scanned) scanScore(); else buildSeq();
   if(!seq.length){toast('Non ho trovato note da suonare in questa pagina',3500);return;}
   if(playIdx>=seq.length) playIdx=0;
+  ordPos=0; if(repOrd&&seq[playIdx]){ const p=repOrd.order.indexOf(seq[playIdx][0].mi); ordPos=p<0?0:p; }
   if(mRange){ if(!inRange(seq[playIdx])) playIdx=rangeStart(); if(playIdx<0){toast('Non trovo note in queste battute',3000);playIdx=0;return;} }
   unlockAudio(); playing=true; beatAcc=0; setPlayUI(); tick();
 }
@@ -2635,7 +2714,7 @@ function setMetro(v){S.metro=v;save();$('metroBtn').classList.toggle('on',v);}
 $('metroBtn').onclick=()=>{setMetro(!S.metro); toast(S.metro?'Tic del metronomo attivo':'Tic del metronomo spento',1500);};
 $('metroVol').oninput=e=>{S.metroVol=+e.target.value;save();};
 $('metroVol').onchange=()=>{ if(!playing) metroClick(false); };
-function stop(){pause();playIdx=0;ballHide();}
+function stop(){pause();playIdx=0;ordPos=0;ballHide();}
 async function tick(){
   try{ await tickBody(); }
   catch(e){ console.error(e); showErr(e.message); if(playing){ playIdx++; clearTimeout(playTimer); playTimer=setTimeout(tick,300); } }
@@ -2650,6 +2729,7 @@ async function tickBody(){
     if(S.loop) playIdx=0;
     else { stop(); toast('Fine del brano 🎶'); return; }
   }
+  syncOrd();
   const g=seq[playIdx];
   if(g[0].rest) showRest(notes.indexOf(g[0]));
   else if(g.sym){ const fr=showChord(g);
@@ -2671,9 +2751,9 @@ async function tickBody(){
   }
   $('marker').scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
   const beats=S.rhythm==='uguali'?1:(g.beats||Math.min(...g.map(n=>n.dur)));
-  const gi=playIdx; playIdx++;
+  const gi=playIdx; const nx=nextAfter(gi,ordPos); playIdx=nx.idx; ordPos=nx.pos;
   const wait=beats*60000/(S.bpm*(g.tf||1));
-  try{ mixPlay(gi,beats,wait); }catch(e){ console.error(e); if(!window._mixErr){ window._mixErr=1; toast('Errore negli altri strumenti: '+e.message,5000); } }
+  try{ mixPlay(gi,beats,wait,playIdx); }catch(e){ console.error(e); if(!window._mixErr){ window._mixErr=1; toast('Errore negli altri strumenti: '+e.message,5000); } }
   metroBeats(beats,60000/(S.bpm*(g.tf||1)));
   let nxt=seq[playIdx]; if(!nxt&&S.loop) nxt=seq[mRange?rangeStart():0]; else if(nxt&&mRange&&!inRange(nxt)) nxt=S.loop?seq[rangeStart()]:null;
   ballHop(g,nxt,wait);
