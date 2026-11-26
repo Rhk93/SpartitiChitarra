@@ -154,9 +154,23 @@ body.noScore #wrap{flex:1 1 auto}
 #quickBar::-webkit-scrollbar{display:none}
 #quickBar button{flex:0 0 auto;background:var(--soft);font-size:.9rem;padding:.45rem .6rem;white-space:nowrap}
 #quickBar button.on{background:var(--acc2);color:#fff}
-#quickBar #qPlayGrp{display:inline-flex;gap:.25rem;flex:0 0 auto}
-#quickBar #qPlayGrp button{background:var(--main);color:#fff;min-width:2.6rem;font-size:1.05rem}
-#quickBar #qPlay.on{background:var(--acc)}
+#quickBar #qPlayGrp{display:inline-flex;align-items:center;gap:.45rem;flex:0 0 auto;padding:0 .2rem}
+#quickBar #qPlayGrp button{width:2.7rem;height:2.7rem;min-width:0;padding:0;border-radius:50%;border:2px solid rgba(255,255,255,.85);color:#fff;font-size:1rem;line-height:1;display:inline-flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.45),rgba(255,255,255,0) 45%),linear-gradient(160deg,var(--main),var(--main2));
+  box-shadow:0 4px 10px rgba(0,0,0,.28),inset 0 -3px 6px rgba(0,0,0,.2);transition:transform .12s,box-shadow .12s,filter .2s}
+#quickBar #qPlayGrp #qPlay{width:3.3rem;height:3.3rem;font-size:1.35rem;padding-left:.2rem;
+  background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.5),rgba(255,255,255,0) 45%),linear-gradient(160deg,var(--acc),var(--main2))}
+#quickBar #qPlayGrp button:active{transform:scale(.9);box-shadow:0 1px 4px rgba(0,0,0,.3),inset 0 2px 6px rgba(0,0,0,.3)}
+#quickBar #qPlay.on{animation:playPulse 1.6s ease-in-out infinite}
+@keyframes playPulse{0%,100%{box-shadow:0 4px 10px rgba(0,0,0,.28),0 0 0 0 var(--acc)}50%{box-shadow:0 4px 10px rgba(0,0,0,.28),0 0 0 6px transparent}}
+/* durante la riproduzione la barra diventa trasparente: restano ben visibili solo ▶ ⏸ ⏹. Un tocco la fa riapparire */
+#quickBar,#quickBar>*{transition:opacity .4s,background .4s,border-color .4s}
+body.isPlaying #quickBar:not(.show){background:transparent;border-color:transparent}
+body.isPlaying #quickBar:not(.show)>*:not(#qPlayGrp){display:none!important}
+body.isPlaying #quickBar:not(.show){padding:.15rem .6rem;margin-bottom:.1rem}
+body.isPlaying #quickBar:not(.show) #qPlayGrp button{width:2.3rem;height:2.3rem;font-size:.85rem}
+body.isPlaying #quickBar:not(.show) #qPlayGrp #qPlay{width:2.7rem;height:2.7rem;font-size:1.1rem}
+body.isPlaying #quickBar:not(.show) #grip{display:none}
 #lensCv{display:none;width:100%;background:#fff;border-radius:.4rem;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 body.lens #lensCv{display:block}
 body.lens #wrap{flex:0 0 auto}
@@ -2933,10 +2947,15 @@ $('loopBtn').onclick=()=>{S.loop=!S.loop;save();$('loopBtn').classList.toggle('o
 $('ovBtn').onclick=()=>{S.showOv=!S.showOv;save();$('ovBtn').classList.toggle('on',S.showOv);if(S.showOv&&loaded&&!scanned)scanScore();drawOverlay();};
 $('playBtn').onclick=()=>playing?pause():play();
 $('stopBtn').onclick=()=>stop();
-function setPlayUI(){const t=playing?'⏸':'▶';$('playBtn').textContent=t;$('qPlay').classList.toggle('on',playing);$('miniPlay').textContent=t;$('hPlay').textContent=t;}
+function setPlayUI(){const t=playing?'⏸':'▶';$('playBtn').textContent=t;$('qPlay').classList.toggle('on',playing); if(document.body.classList.contains('isPlaying')!==!!playing){ const go=()=>{ document.body.classList.toggle('isPlaying',playing); if(!playing) $('quickBar').classList.remove('show'); setTimeout(()=>{ applyPanelH(); if(S.lens) lensDraw(); },50); };
+  if(playing) go(); else setTimeout(go,180); }   /* dopo pausa/stop la barra intera torna quando il tocco è finito */ $('miniPlay').textContent=t;$('hPlay').textContent=t;}
 $('miniPlay').onclick=$('hPlay').onclick=()=>playing?pause():play();
 $('hStop').onclick=()=>stop();
-$('qPlay').onclick=()=>{ if(!playing) play(); }; $('qPause').onclick=()=>{ if(playing) pause(); }; $('qStop').onclick=()=>stop();
+$('qPlay').onclick=()=>{ if(!playing) play(); };
+// tocco sulla barra trasparente: torna visibile per qualche secondo
+let qbT=null;
+$('quickBar').addEventListener('pointerdown',e=>{ if(!playing||e.target.closest('#qPlayGrp')) return;   // ▶ ⏸ ⏹ funzionano subito, senza spostare la barra const qb=$('quickBar'); if(!qb.classList.contains('show')){ qb.classList.add('show'); setTimeout(applyPanelH,30); } clearTimeout(qbT);
+  qbT=setTimeout(function hide(){ if(qb.matches(':active')||qb.contains(document.activeElement)&&document.activeElement.tagName==='INPUT'){ qbT=setTimeout(hide,1500); return; } qb.classList.remove('show'); setTimeout(applyPanelH,30); },4000); },true); $('qPause').onclick=()=>{ if(playing) pause(); }; $('qStop').onclick=()=>stop();
 function setOnlyNeck(v){S.onlyNeck=v;save();document.body.classList.toggle('onlyNeck',v);$('neckOnly').classList.toggle('on',v);$('neckOnly').title=v?'Solo manico attivo: tocca per far riapparire tutto':'Solo manico';applyPanelH();layout();}
 $('neckOnly').onclick=()=>setOnlyNeck(!S.onlyNeck);
 function play(){
@@ -3544,7 +3563,7 @@ $('snd').onclick=()=>{if(cur){const p=pitch(cur.step,cur.ov);pluck(p.sound);}};
 /* ---------- tastiera ---------- */
 let NUT=84, END=985, TOPY=26, GAP=34, VBW=1000, VBH=236, BRIDGE=1170, RHX=1010;
 function setGeo(){ const hd=S.hands!==false;
-  if(hd){END=780;TOPY=122;VBW=1200;VBH=332;} else {END=985;TOPY=26;VBW=1000;VBH=236;}
+  if(hd){END=780;TOPY=84;VBW=1200;VBH=294;}   // dita più corte: meno spazio sopra il manico else {END=985;TOPY=26;VBW=1000;VBH=236;}
   const sv=$('fret'); if(sv) sv.setAttribute('viewBox','0 0 '+VBW+' '+VBH); }
 const fx=f=>NUT+(END-NUT)*(1-Math.pow(2,-f/12))/(1-Math.pow(2,-NFRETS/12));
 const sy=s=>TOPY+s*GAP;
@@ -3637,12 +3656,13 @@ function handsChord(fr){ if(S.hands===false||!fr) return;
   HS.ch=ss; HS.swK=S.arp?0:1; HS.rAct=-1; HS.rT0=performance.now();
   HS.vib={t0:performance.now(),list:ss.map(s=>({s,x0:fr[s]>0?fx(fr[s]):NUT}))}; handsRun(); }
 function fingerSvg(x,tipY,w,label,active,lead){
-  const r=w/2, y0=4, len=tipY-y0;
+  const rh=lead==='nail', r=w/2, y0=rh?30:4, len=tipY-y0;   // mano destra: il dito parte sotto la sua lettera
   let h='<g opacity="'+(active?1:.55)+'" filter="url(#hsh)"><path d="M'+(x-r)+' '+y0+' L'+(x-r)+' '+(tipY-r)+' A'+r+' '+r+' 0 0 0 '+(x+r)+' '+(tipY-r)+' L'+(x+r)+' '+y0+'Z" fill="'+SKIN+'" stroke="'+SKIN_D+'" stroke-width="2"/>';
   for(const k of [.42,.72]){const yy=tipY-len*k; if(yy>y0+30) h+='<path d="M'+(x-w*.32)+' '+yy+' q'+(w*.32)+' 4 '+(w*.64)+' 0" fill="none" stroke="'+SKIN_D+'" stroke-width="1.6" opacity=".7"/>';}
   h+=lead==='nail'?'<ellipse cx="'+x+'" cy="'+(tipY-w*.55)+'" rx="'+(w*.3)+'" ry="'+(w*.38)+'" fill="'+NAIL+'" stroke="'+SKIN_D+'" stroke-width="1"/>'
                   :'<ellipse cx="'+x+'" cy="'+(tipY-w*.35)+'" rx="'+(w*.36)+'" ry="'+(w*.3)+'" fill="#e8a989" opacity=".6"/>';
-  h+='</g><circle cx="'+x+'" cy="24" r="13" fill="'+(active?S.acc:'#fff')+'" stroke="'+S.acc+'" stroke-width="2"/><text x="'+x+'" y="29.5" font-size="15" font-weight="800" text-anchor="middle" fill="'+(active?'#fff':S.acc)+'">'+label+'</text>';
+  const cy=rh?15:Math.max(15,tipY-w*1.15-6);   // sinistra: numero sul dito vicino alla punta; destra: lettera sopra il dito
+  h+='</g><circle cx="'+x+'" cy="'+cy+'" r="12" fill="'+(active?S.acc:'#fff')+'" stroke="'+S.acc+'" stroke-width="2"/><text x="'+x+'" y="'+(cy+5)+'" font-size="14" font-weight="800" text-anchor="middle" fill="'+(active?'#fff':S.acc)+'">'+label+'</text>';
   return h;
 }
 function handsFrame(now){
@@ -3654,7 +3674,7 @@ function handsFrame(now){
     HS.lx[i]+=dx*.28; HS.ly[i]+=dy*.32; if(Math.abs(dx)>.5||Math.abs(dy)>.5) moving=true; else {HS.lx[i]=tx;HS.ly[i]=HS.ty[i];} }
   const dt=now-HS.rT0, ch=HS.ch, swD=ch?Math.max(60,SWEEP_MS*(ch.length-1)+40):0;
   const swK=HS.swK||0, tgt=k=>ch?(k===swK?ch[0]:null):(k===HS.rAct?HS.rStr:null);
-  HS.r.forEach((F,k)=>{ let ty=lift-8, sp=.18; const st=tgt(k);
+  HS.r.forEach((F,k)=>{ let ty=TOPY-10, sp=.18; const st=tgt(k);
     if(ch&&k===swK&&dt<swD+220){ moving=true;
       if(dt<swD){ const y0=sy(ch[0]), y1=sy(ch[ch.length-1]); F.y=y0+(y1-y0)*(dt/swD)+4; return; }   // il dito scorre sulle corde
       ty=sy(ch[ch.length-1])-GAP*.75; sp=.5; }
@@ -3780,6 +3800,9 @@ function applyPanelH(){
   const scoreH=loaded?(document.body.classList.contains('lens')?$('lensCv').offsetHeight+16:S.view2?$('wrap').offsetHeight:$('box').offsetHeight+16):0;
   if(scoreH+p.scrollHeight<=avail) p.style.maxHeight='none';
   else p.style.maxHeight=Math.round(Math.min(avail-60,Math.max(base,fretNeed)))+'px';
+  // mentre suona: il pannello si stringe al solo manico (+ ▶ ⏸ ⏹) e lo spazio va allo spartito
+  if(playing&&loaded&&!S.onlyNeck&&!$('quickBar').classList.contains('show')){
+    const need=fretNeed+$('quickBar').offsetHeight; p.style.minHeight=''; p.style.maxHeight=Math.round(Math.min(avail-60,need))+'px'; p.scrollTop=0; }
 }
 (function(){
   const g=$('grip'); let drag=false;
