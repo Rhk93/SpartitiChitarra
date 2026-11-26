@@ -93,6 +93,11 @@ body.onlyNeck #miniMore{display:inline-flex}
 #miniBar button{background:var(--main);color:#fff;font-size:.8rem;padding:.35rem .6rem;opacity:.85;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 body.onlyNeck header,body.onlyNeck #row,body.onlyNeck #playBar,body.onlyNeck #zoneBar,body.onlyNeck #measBar,body.onlyNeck #msg{display:none!important}
 body.onlyNeck #panel{padding-top:.2rem}
+/* solo manico: il manico resta fermo in basso, il pannello non scorre */
+body.onlyNeck:not(.noScore) #panel{flex:0 0 auto;overflow:hidden!important;max-height:none!important;min-height:0!important;height:auto!important;overscroll-behavior:none;touch-action:manipulation}
+body.onlyNeck:not(.noScore) #wrap{flex:1 1 auto;min-height:0}
+body.onlyNeck #grip,body.onlyNeck #copyFoot{display:none!important}
+body.onlyNeck #quickBar{position:static;margin-top:0}
 body.noScore #panel{display:none}
 body.noScore .hplay{display:none}
 #namesBtn,#mixBtn,#playBtn,#stopBtn,#miniPlay,#miniStop,header .hplay{display:none!important}
@@ -2766,14 +2771,16 @@ function svgImg(el,w,h,cb){
 }
 function recFrame(){
   if(!rec) return; const {c,g,q}=rec, w=q.w, h=q.h, nowT=performance.now();
-  if(nowT-(rec.lastF||0)<1000/q.fps-4){ rec.raf=requestAnimationFrame(recFrame); return; }   // non più fotogrammi del necessario
-  rec.lastF=nowT;
+  const el=nowT-rec.t0, fnt=rec.fnt||(rec.fnt=getComputedStyle(document.body).fontFamily);
+  if(el<REC_TITLE_MS){   // cartello del titolo: lo disegno una volta sola e poi lo ricopio (leggero)
+    if(!rec.titleCv){ const t=document.createElement('canvas'); t.width=w; t.height=h; recTitle(t.getContext('2d'),w,h,fnt,1); rec.titleCv=t; }
+    g.drawImage(rec.titleCv,0,0); const fo=el>REC_TITLE_MS-400?(el-(REC_TITLE_MS-400))/400:0;
+    if(fo>0){ g.globalAlpha=fo; g.fillStyle=S.bg||'#fff'; g.fillRect(0,0,w,h); g.globalAlpha=1; }
+    rec.drawn=false; recTick(); return; }
   const sig=(window._curG?seq.indexOf(window._curG):-1)+'|'+(HS.raf?1:0)+'|'+playing;
-  if(rec.sig===sig&&!HS.raf&&rec.fret&&rec.drawn){ recTick(); return; }   // niente è cambiato: tengo il fotogramma di prima
+  if(rec.sig===sig&&!HS.raf&&rec.fret&&rec.drawn){ recTick(); return; }   // niente è cambiato: rispedisco il fotogramma di prima
   rec.sig=sig; rec.drawn=true;
   g.fillStyle=S.bg||'#fff'; g.fillRect(0,0,w,h);
-  const el=nowT-rec.t0, fnt=rec.fnt||(rec.fnt=getComputedStyle(document.body).fontFamily);
-  if(el<REC_TITLE_MS){ rec.drawn=false; recTitle(g,w,h,fnt,Math.min(1,(REC_TITLE_MS-el)/400)); recTick(); return; }
   // striscia in alto con il titolo
   const th=Math.round(h*0.075); g.fillStyle=S.main; g.fillRect(0,0,w,th);
   g.fillStyle='#fff'; g.font='700 '+Math.round(th*0.55)+'px '+fnt; g.textBaseline='middle'; g.textAlign='left';
@@ -2795,7 +2802,8 @@ function recFrame(){
   if(!rec.busy&&(!rec.fret||HS.raf)&&nowT-(rec.lastFret||0)>80){ rec.lastFret=nowT; const sv=$('fret'), vb=sv.viewBox.baseVal; rec.busy=true; svgImg(sv,vb&&vb.width?vb.width:1000,vb&&vb.height?vb.height:240,im=>{ if(rec){ if(im) rec.fret=im; rec.busy=false; } }); }
   recTick();
 }
-function recTick(){ const t=Math.floor((performance.now()-rec.t0)/1000); $('recTime').textContent=Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); rec.raf=requestAnimationFrame(recFrame); }
+function recTick(){ if(rec.vt&&rec.vt.requestFrame) try{ rec.vt.requestFrame(); }catch(e){}
+  const t=Math.floor((performance.now()-rec.t0)/1000), tx=Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); if(rec.tx!==tx){ rec.tx=tx; $('recTime').textContent=tx; } }
 const REC_TITLE_MS=2800;
 function recName(){ const sc=xmlScore&&xmlScore.sc; const t=(sc&&sc.title)||String(srcName||'Spartito').replace(/_/g,' ');
   return {title:t, comp:(sc&&sc.composer)||'', part:xmlScore&&xmlScore.part?xmlScore.part.name:''}; }
@@ -2816,19 +2824,23 @@ function recStart(){
   if(!loaded){ toast('Apri prima uno spartito',2500); return; }
   if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){ toast('Su questo dispositivo la registrazione non è disponibile',4000); return; }
   const q=RQ[S.recQ||'media'], c=document.createElement('canvas'); c.width=q.w; c.height=q.h;
-  const g=c.getContext('2d'), vs=c.captureStream(q.fps), a=audio(), dest=a.createMediaStreamDestination(); outBus().connect(dest);
+  const g=c.getContext('2d',{alpha:false}), a=audio(), dest=a.createMediaStreamDestination(); outBus().connect(dest);
+  let vs=c.captureStream(0), vt=vs.getVideoTracks()[0]; if(!vt||!vt.requestFrame){ vs=c.captureStream(q.fps); vt=vs.getVideoTracks()[0]; }
   const stream=new MediaStream([...vs.getVideoTracks(),...dest.stream.getAudioTracks()]);
   const mime=recMime(); let mr;
   try{ mr=new MediaRecorder(stream,Object.assign({videoBitsPerSecond:q.br,audioBitsPerSecond:128000},mime?{mimeType:mime}:{})); }
   catch(e){ try{ mr=new MediaRecorder(stream); }catch(e2){ toast('Registrazione non riuscita: '+e2.message,4000); outBus().disconnect(dest); return; } }
   const chunks=[]; mr.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
-  rec={c,g,q,mr,dest,chunks,t0:performance.now(),busy:false,fret:null,ov:null,ovK:1,mime:mr.mimeType||mime||'video/webm'};
+  rec={c,g,q,mr,dest,chunks,vt,t0:performance.now(),busy:false,fret:null,ov:null,ovK:1,mime:mr.mimeType||mime||'video/webm'};
   if(!lensOv) lensRefreshOv();
   mr.onstop=async()=>{ const blob=new Blob(chunks,{type:(mr.mimeType||rec0.mime).split(';')[0]}), ext=/mp4/.test(blob.type)?'mp4':'webm';
     const nm=String(recName().title).replace(/[^\w\- àèéìòù]+/gi,'').trim().replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,16).replace(/[-:T]/g,'')+'.'+ext;
     toast('Salvo il video…',4000);
     try{ const r=await saveFiles([{blob,name:nm}],blob.type); toast('🎬 '+(r||'Video pronto')+' · '+nm,4000); }catch(e){ toast('Video non salvato: '+e.message,4000); } };
-  const rec0=rec; mr.start(1000); recFrame();
+  const rec0=rec;
+  recFrame();                                   // primo fotogramma pronto PRIMA di accendere il registratore
+  mr.start(1000); rec.t0=performance.now();
+  rec.iv=setInterval(recFrame,Math.round(1000/q.fps));   // ritmo fisso dei fotogrammi
   $('recBtn').classList.add('on'); $('recBtn').textContent='⏹ Ferma'; $('recQ').disabled=true;
   // si parte SEMPRE dalla prima nota (o dalla prima delle battute scelte), dopo il cartello col titolo
   if(playing) pause(); clearTimeout(window._recPlayT);
@@ -2840,7 +2852,7 @@ function recStart(){
   window._recPlayT=setTimeout(()=>{ if(rec&&!playing){ playIdx=mRange?Math.max(0,rangeStart()):0; ordPos=0; play(); } },REC_TITLE_MS+350);
 }
 function recStop(){
-  if(!rec) return; const r=rec; rec=null; cancelAnimationFrame(r.raf); clearTimeout(window._recPlayT);
+  if(!rec) return; const r=rec; rec=null; clearInterval(r.iv); clearTimeout(window._recPlayT);
   try{ r.mr.stop(); }catch(e){} try{ outBus().disconnect(r.dest); }catch(e){}
   $('recBtn').classList.remove('on'); $('recBtn').textContent='⏺ REC'; $('recQ').disabled=false; $('recTime').textContent='';
   if(playing) pause();
