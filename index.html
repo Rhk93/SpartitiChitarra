@@ -2775,7 +2775,7 @@ function recFrame(){
   if(el<REC_TITLE_MS){   // cartello del titolo: lo disegno una volta sola e poi lo ricopio (leggero)
     if(!rec.titleCv){ const t=document.createElement('canvas'); t.width=w; t.height=h; recTitle(t.getContext('2d'),w,h,fnt,1); rec.titleCv=t; }
     g.drawImage(rec.titleCv,0,0); const fo=el>REC_TITLE_MS-400?(el-(REC_TITLE_MS-400))/400:0;
-    if(fo>0){ g.globalAlpha=fo; g.fillStyle=S.bg||'#fff'; g.fillRect(0,0,w,h); g.globalAlpha=1; }
+    if(false&&fo>0){ g.globalAlpha=fo; g.fillStyle=S.bg||'#fff'; g.fillRect(0,0,w,h); g.globalAlpha=1; }
     rec.drawn=false; recTick(); return; }
   const sig=(window._curG?seq.indexOf(window._curG):-1)+'|'+(HS.raf?1:0)+'|'+playing;
   if(rec.sig===sig&&!HS.raf&&rec.fret&&rec.drawn){ recTick(); return; }   // niente è cambiato: rispedisco il fotogramma di prima
@@ -2804,7 +2804,7 @@ function recFrame(){
 }
 function recTick(){ if(rec.vt&&rec.vt.requestFrame) try{ rec.vt.requestFrame(); }catch(e){}
   const t=Math.floor((performance.now()-rec.t0)/1000), tx=Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); if(rec.tx!==tx){ rec.tx=tx; $('recTime').textContent=tx; } }
-const REC_TITLE_MS=2800;
+const REC_TITLE_MS=250;   // solo un attimo: serve come anteprima del video col nome del brano
 function recName(){ const sc=xmlScore&&xmlScore.sc; const t=(sc&&sc.title)||String(srcName||'Spartito').replace(/_/g,' ');
   return {title:t, comp:(sc&&sc.composer)||'', part:xmlScore&&xmlScore.part?xmlScore.part.name:''}; }
 // cartello col titolo: è anche l'anteprima del video
@@ -2849,7 +2849,7 @@ function recStart(){
   const g0=seq[playIdx]; window._curG=g0||null; window._curSt=g0?g0[0].st:null; window._curRest=null;
   if(g0&&!g0[0].rest){ const tp=g0.reduce((a,b)=>b.step>a.step?b:a); window._curPt={x:tp.x,y:noteY(tp)}; } else window._curPt=null;
   if(S.lens) lensDraw();
-  window._recPlayT=setTimeout(()=>{ if(rec&&!playing){ playIdx=mRange?Math.max(0,rangeStart()):0; ordPos=0; play(); } },REC_TITLE_MS+350);
+  window._recPlayT=setTimeout(()=>{ if(rec&&!playing){ playIdx=mRange?Math.max(0,rangeStart()):0; ordPos=0; play(); } },REC_TITLE_MS+150);
 }
 function recStop(){
   if(!rec) return; const r=rec; rec=null; clearInterval(r.iv); clearTimeout(window._recPlayT);
