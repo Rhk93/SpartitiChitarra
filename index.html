@@ -2699,18 +2699,44 @@ function svgImg(el,w,h,cb){
 function recFrame(){
   if(!rec) return; const {c,g,q}=rec, w=q.w, h=q.h;
   g.fillStyle=S.bg||'#fff'; g.fillRect(0,0,w,h);
-  // in alto: 1 o 2 righi dello spartito, con la nota che suona
+  const el=performance.now()-rec.t0, fnt=getComputedStyle(document.body).fontFamily;
+  if(el<REC_TITLE_MS){ recTitle(g,w,h,fnt,Math.min(1,(REC_TITLE_MS-el)/400)); recTick(); return; }
+  // striscia in alto con il titolo
+  const th=Math.round(h*0.075); g.fillStyle=S.main; g.fillRect(0,0,w,th);
+  g.fillStyle='#fff'; g.font='700 '+Math.round(th*0.55)+'px '+fnt; g.textBaseline='middle'; g.textAlign='left';
+  g.fillText(recName().title+(recName().comp?'  ·  '+recName().comp:''),Math.round(w*0.02),th/2,w*0.96);
+  // poi 1 o 2 righi dello spartito, con la nota che suona
   const sh=Math.round(h*0.42), G=v2Geom(curSt(),S.view2||2);
-  if(G&&W){ const cv=$('cv'), k=cv.width/W, y0=G.y0, ch=Math.min(G.h,H-y0), s=Math.min((w-20)/W,(sh-10)/ch), dw=W*s, dh=ch*s, dx=(w-dw)/2, dy=(sh-dh)/2;
+  if(G&&W){ const cv=$('cv'), k=cv.width/W, y0=G.y0, ch=Math.min(G.h,H-y0), s=Math.min((w-20)/W,(sh-th-10)/ch), dw=W*s, dh=ch*s, dx=(w-dw)/2, dy=th+(sh-th-dh)/2;
     g.fillStyle='#fff'; g.fillRect(dx,dy,dw,dh);
     try{ g.drawImage(cv,0,y0*k,cv.width,ch*k,dx,dy,dw,dh); }catch(e){}
     if(rec.ov) try{ g.drawImage(rec.ov,0,y0*rec.ovK,rec.ov.width,ch*rec.ovK,dx,dy,dw,dh); }catch(e){}
+    const rr=window._curRest; if(rr&&rr.y2>=y0&&rr.y1<=y0+ch){   // pausa: la evidenzio
+      const pad=G.st.sp*0.6, x=dx+(rr.x1-pad)*s, y=dy+(Math.max(rr.y1,y0)-y0-pad)*s, ww=(rr.x2-rr.x1+pad*2)*s, hh=(Math.min(rr.y2,y0+ch)-Math.max(rr.y1,y0)+pad*2)*s;
+      g.save(); g.globalAlpha=.28; g.fillStyle=S.acc; g.fillRect(x,y,ww,hh); g.globalAlpha=1; g.strokeStyle=S.acc; g.lineWidth=Math.max(3,w/420); g.strokeRect(x,y,ww,hh);
+      g.fillStyle=S.acc; g.font='700 '+Math.round(Math.max(14,h*0.03))+'px '+fnt; g.textAlign='center'; g.textBaseline='bottom'; g.fillText('pausa',x+ww/2,Math.max(th+h*0.035,y-4)); g.restore(); }
     const pt=window._curPt; if(pt&&pt.y>=y0&&pt.y<=y0+ch){ g.strokeStyle=S.acc; g.lineWidth=Math.max(3,w/400); g.beginPath(); g.arc(dx+pt.x*s,dy+(pt.y-y0)*s,Math.max(10,G.st.sp*s*1.2),0,Math.PI*2); g.stroke(); } }
   // sotto: il manico con le mani
   if(rec.fret){ const im=rec.fret, ah=h-sh, s=Math.min(w/im.width,ah/im.height), dw=im.width*s, dh=im.height*s; g.drawImage(im,(w-dw)/2,sh+(ah-dh)/2,dw,dh); }
   if(!rec.busy){ const sv=$('fret'), vb=sv.viewBox.baseVal; rec.busy=true; svgImg(sv,vb&&vb.width?vb.width:1000,vb&&vb.height?vb.height:240,im=>{ if(rec){ if(im) rec.fret=im; rec.busy=false; } }); }
-  const t=Math.floor((performance.now()-rec.t0)/1000); $('recTime').textContent=Math.floor(t/60)+':'+String(t%60).padStart(2,'0');
-  rec.raf=requestAnimationFrame(recFrame);
+  recTick();
+}
+function recTick(){ const t=Math.floor((performance.now()-rec.t0)/1000); $('recTime').textContent=Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); rec.raf=requestAnimationFrame(recFrame); }
+const REC_TITLE_MS=2800;
+function recName(){ const sc=xmlScore&&xmlScore.sc; const t=(sc&&sc.title)||String(srcName||'Spartito').replace(/_/g,' ');
+  return {title:t, comp:(sc&&sc.composer)||'', part:xmlScore&&xmlScore.part?xmlScore.part.name:''}; }
+// cartello col titolo: è anche l'anteprima del video
+function recTitle(g,w,h,fnt,al){
+  const gr=g.createLinearGradient(0,0,w,h); gr.addColorStop(0,S.main); gr.addColorStop(1,mix(S.main,'#000000',.45)); g.fillStyle=gr; g.fillRect(0,0,w,h);
+  g.save(); g.globalAlpha=al; g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#fff';
+  const n=recName(); let fs=Math.round(h*0.12); g.font='800 '+fs+'px '+fnt; while(fs>18&&g.measureText(n.title).width>w*0.9){ fs-=2; g.font='800 '+fs+'px '+fnt; }
+  g.fillText(n.title,w/2,h*0.42);
+  g.font='600 '+Math.round(h*0.05)+'px '+fnt; g.globalAlpha=al*.9;
+  if(n.comp) g.fillText(n.comp,w/2,h*0.58);
+  if(n.part) g.fillText('🎸 '+n.part,w/2,h*(n.comp?0.68:0.58));
+  g.fillStyle=S.acc; g.fillRect(w*0.35,h*0.8,w*0.3,Math.max(4,h*0.008));
+  g.fillStyle='#fff'; g.font='500 '+Math.round(h*0.035)+'px '+fnt; g.globalAlpha=al*.75; g.fillText('Spartito → Chitarra · © Ignazio Paolicelli',w/2,h*0.88);
+  g.restore();
 }
 function recStart(){
   if(!loaded){ toast('Apri prima uno spartito',2500); return; }
@@ -2725,15 +2751,16 @@ function recStart(){
   rec={c,g,q,mr,dest,chunks,t0:performance.now(),busy:false,fret:null,ov:null,ovK:1,mime:mr.mimeType||mime||'video/webm'};
   const ov=$('ov'); if(ov&&W) svgImg(ov,W,H,im=>{ if(rec&&im){ rec.ov=im; rec.ovK=im.height/H; } });
   mr.onstop=async()=>{ const blob=new Blob(chunks,{type:(mr.mimeType||rec0.mime).split(';')[0]}), ext=/mp4/.test(blob.type)?'mp4':'webm';
-    const nm=(srcName||'spartito')+'_'+new Date().toISOString().slice(0,16).replace(/[-:T]/g,'')+'.'+ext;
+    const nm=String(recName().title).replace(/[^\w\- àèéìòù]+/gi,'').trim().replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,16).replace(/[-:T]/g,'')+'.'+ext;
     toast('Salvo il video…',4000);
     try{ const r=await saveFiles([{blob,name:nm}],blob.type); toast('🎬 '+(r||'Video pronto')+' · '+nm,4000); }catch(e){ toast('Video non salvato: '+e.message,4000); } };
   const rec0=rec; mr.start(1000); recFrame();
   $('recBtn').classList.add('on'); $('recBtn').textContent='⏹ Ferma'; $('recQ').disabled=true;
-  if(!playing) play();
+  if(playing) pause(); clearTimeout(window._recPlayT);
+  window._recPlayT=setTimeout(()=>{ if(rec&&!playing) play(); },REC_TITLE_MS);
 }
 function recStop(){
-  if(!rec) return; const r=rec; rec=null; cancelAnimationFrame(r.raf);
+  if(!rec) return; const r=rec; rec=null; cancelAnimationFrame(r.raf); clearTimeout(window._recPlayT);
   try{ r.mr.stop(); }catch(e){} try{ outBus().disconnect(r.dest); }catch(e){}
   $('recBtn').classList.remove('on'); $('recBtn').textContent='⏺ REC'; $('recQ').disabled=false; $('recTime').textContent='';
   if(playing) pause();
@@ -2877,7 +2904,9 @@ async function tickBody(){
     others.forEach((n,i)=>setTimeout(()=>pluck(pitch(n.step,n.ov).sound,0.4*(g.vol||1)*mixMain()),i*18));
     setTimeout(()=>pluck(pitch(top.step,top.ov).sound,0.45*(g.vol||1)*mixMain()),others.length*18); handsPluck(cur.pos);
   }
-  { const st=g[0].st; window._curSt=st; const tp=g.reduce((a,b)=>b.step>a.step?b:a); if(st) window._curPt={x:tp.x,y:noteY(tp)}; }
+  { const st=g[0].st; window._curSt=st;
+    if(g[0].rest){ window._curPt=null; const r=g[0], sp=st?st.sp:10; window._curRest=r.box?{x1:r.box[0],y1:r.box[1],x2:r.box[2],y2:r.box[3]}:(st?{x1:r.x-sp*1.6,y1:st.top-sp*0.5,x2:r.x+sp*1.6,y2:st.top+sp*4.5}:null); }
+    else { window._curRest=null; const tp=g.reduce((a,b)=>b.step>a.step?b:a); if(st) window._curPt={x:tp.x,y:noteY(tp)}; } }
   if(S.view2) v2Follow(g[0].st); else $('marker').scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
   const beats=S.rhythm==='uguali'?1:(g.beats||Math.min(...g.map(n=>n.dur)));
   const gi=playIdx; const nx=nextAfter(gi,ordPos); playIdx=nx.idx; ordPos=nx.pos;
